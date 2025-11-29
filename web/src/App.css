@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Poppins Regular */
+@font-face {
+  font-family: "Poppins";
+  src: url(./assets/fonts/Poppins-Regular.ttf) format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Poppins Bold */
+@font-face {
+  font-family: "Poppins";
+  src: url(./assets/fonts/Poppins-Bold.ttf) format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Roboto Regular */
+@font-face {
+  font-family: "Roboto";
+  src: url(./assets/fonts/Roboto_Condensed-Regular.ttf) format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Roboto Medium */
+@font-face {
+  font-family: "Roboto";
+  src: url(./assets/fonts/Roboto_Condensed-Medium.ttf) format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Roboto Bold */
+@font-face {
+  font-family: "Roboto";
+  src: url(./assets/fonts/Roboto_SemiCondensed-Bold.ttf) format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@theme {
+  --color-primary: #397449;
+  --color-secondary: #285233;
+  --color-botao: #438c56;
+  --color-background: #e8eae9;
+  --color-footer-primary: #d9dbd9;
+  --color-footer-secondary: #c9ccc9;
+  --color-btnDelete: #BC4242;
+  --color-btnEdit: #DFB747;
+
+  --font-poppins: Poppins, sans-serif;
+  --font-roboto: Roboto, sans-serif;
+
+  --text-10xl: 6rem;
+  --text-11xl: 8rem;
+
+  --shadow-custom: 2px 2px 12px 1px rgba(0, 0, 0, 0.15);
+}
