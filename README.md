@@ -90,7 +90,7 @@ npm run dev
 ```
 
 
-Equipe de Desenvolvimento
+### Equipe de Desenvolvimento
 
 -   Jefferson Cabral Kotoski
 -   Murilo Nunes Pimentel
