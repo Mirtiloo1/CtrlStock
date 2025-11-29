@@ -58,30 +58,37 @@ Pré-requisitos
 -   PostgreSQL
 -   Expo Go
 
-Como Rodar o Projeto
+## Como Rodar o Projeto
 
-1. Configurar o Banco
+### 1. Configurar o Banco
 
-Configure o PostgreSQL e crie o banco. Defina as variáveis de ambiente
-no arquivo .env dentro de /backend, incluindo DATABASE_URL.
+Configure o PostgreSQL e crie o banco.  
+Defina as variáveis de ambiente no arquivo `.env` dentro de `/backend`, incluindo `DATABASE_URL`.
 
-2. Iniciar o Backend
+### 2. Iniciar o Backend
 
-    cd backend
-    npm install
-    npm start
+```bash
+cd backend
+npm install
+npm start
+```
 
-3. Iniciar o Mobile
+### 3. Iniciar o Mobile
 
-    cd mobile
-    npm install
-    npx expo start
+```bash
+cd mobile
+npm install
+npx expo start
+```
 
-4. Iniciar o Web
+### 4. Iniciar o Web
 
-    cd web
-    npm install
-    npm run dev
+```bash
+cd web
+npm install
+npm run dev
+```
+
 
 Equipe de Desenvolvimento
 
