@@ -1,233 +1,193 @@
 const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
-require("dotenv").config();
-
-// Bibliotecas de Autenticação
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-const JWT_SECRET = process.env.JWT_SECRET || "senha_secreta_super_segura";
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "segredo_padrao";
 
 app.use(cors());
 app.use(express.json());
 
-// --- CONEXÃO COM O BANCO DE DADOS ---
+// Conexão Híbrida (Render ou Local)
 const isProduction = !!process.env.DATABASE_URL;
 const pool = new Pool({
-  connectionString:
-      process.env.DATABASE_URL ||
-      "postgresql://postgres:Cleison23!08!@localhost:5432/ctrlstock_db",
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:Cleison23!08!@localhost:5432/ctrlstock_db",
   ...(isProduction && { ssl: { rejectUnauthorized: false } }),
 });
 
-// --- BUFFER DE MEMÓRIA (Para comunicação ESP32 -> App) ---
-let lastTagBuffer = { uid: null, timestamp: null };
+// Buffer para tag desconhecida (Validade: 30s)
+// Padronizado com o Dossiê Técnico para o App encontrar a rota
+let lastUnknownTag = { uid: null, time: 0 };
 
-// Rota de Teste Simples
+// --- ROTAS AUXILIARES ---
 app.get("/test-db", async (req, res) => {
   try {
     const r = await pool.query("SELECT NOW()");
     res.json({ success: true, dbTime: r.rows[0].now });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// App chama para pegar UID na tela de cadastro
+app.get("/api/last-unknown", (req, res) => {
+  if (lastUnknownTag.uid && (Date.now() - lastUnknownTag.time < 30000)) {
+    const uid = lastUnknownTag.uid;
+    lastUnknownTag = { uid: null, time: 0 }; // Limpa após consumo
+    return res.json({ uid });
+  }
+  res.json({ uid: null });
+});
+
+// --- MOVIMENTAÇÕES (ESP32 - O "Olho") ---
+app.post("/api/movements", async (req, res) => {
+  const { uid, tipo } = req.body;
+  if (!uid) return res.status(400).json({ message: "UID ausente" });
+
+  try {
+    // 1. Verifica se existe
+    const prod = await pool.query("SELECT id FROM produtos WHERE uid_etiqueta=$1 AND ativo=true", [uid]);
+
+    // 2. SE NÃO EXISTE: Bufferiza e Retorna 404 (ESP32 Bipa Longo + Vermelho)
+    if (!prod.rows.length) {
+      lastUnknownTag = { uid, time: Date.now() };
+      console.log(`Tag Desconhecida Bufferizada: ${uid}`);
+      return res.status(404).json({ message: "Não cadastrado" });
+    }
+
+    // 3. LÓGICA DE STATUS INTELIGENTE
+    // Se o Arduino diz "entrada", é apenas uma checagem/movimentação interna (Cinza)
+    // Se o Arduino diz "saida", é uma retirada real (Vermelho)
+    let tipoFinal = 'movimentacao';
+    if (tipo === 'saida') {
+      tipoFinal = 'saida';
+    }
+
+    await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)", [prod.rows[0].id, tipoFinal]);
+    console.log(`Movimentação registrada: ${uid} -> ${tipoFinal}`);
+    res.status(201).json({ success: true });
+
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Erro interno" });
   }
 });
 
-/* ====================== AUTENTICAÇÃO ====================== */
+// --- CRUD PRODUTOS ---
 
-// Cadastro de Usuário (App)
-app.post("/auth/register", async (req, res) => {
-  const { nome, email, senha } = req.body;
-  if (!nome || !email || !senha)
-    return res.status(400).json({ success: false, message: "Preencha todos os campos." });
+// 1. CRIAR (Gera status 'entrada' VERDE automaticamente)
+app.post("/api/products", async (req, res) => {
+  const { nome, uid_etiqueta, descricao } = req.body;
 
+  const client = await pool.connect();
   try {
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(senha, salt);
+    await client.query('BEGIN'); // Inicia Transação
 
-    const r = await pool.query(
-        "INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email",
-        [nome, email, hash]
+    // Insere Produto
+    const r = await client.query(
+        "INSERT INTO produtos (nome, uid_etiqueta, descricao) VALUES ($1, $2, $3) RETURNING *",
+        [nome, uid_etiqueta, descricao]
     );
-    res.status(201).json({ success: true, user: r.rows[0] });
+
+    // Loga IMEDIATAMENTE no histórico como 'entrada'
+    await client.query(
+        "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')",
+        [r.rows[0].id]
+    );
+
+    await client.query('COMMIT'); // Confirma Transação
+    res.status(201).json({ success: true, data: r.rows[0] });
   } catch (err) {
-    if (err.code === "23505")
-      return res.status(400).json({ success: false, message: "Email já cadastrado." });
-    res.status(500).json({ success: false, message: "Erro no servidor." });
+    await client.query('ROLLBACK'); // Cancela se der erro
+    res.status(err.code === "23505" ? 409 : 500).json({ message: err.message });
+  } finally {
+    client.release();
   }
 });
 
-// Login de Usuário
-app.post("/auth/login", async (req, res) => {
-  const { email, senha } = req.body;
+// 2. EDITAR (Gera status 'editado' LARANJA)
+app.put("/api/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nome, uid_etiqueta, descricao } = req.body;
+
   try {
-    const r = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
-    const user = r.rows[0];
+    const r = await pool.query(
+        "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *",
+        [nome, uid_etiqueta, descricao, id]
+    );
 
-    if (!user) return res.status(400).json({ success: false, message: "Email ou senha incorretos." });
-
-    const senhaCorreta = await bcrypt.compare(senha, user.senha_hash);
-    if (!senhaCorreta) return res.status(400).json({ success: false, message: "Email ou senha incorretos." });
-
-    const token = jwt.sign({ id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: "30d" });
-
-    res.json({
-      success: true,
-      token,
-      user: { id: user.id, nome: user.nome, email: user.email },
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Erro no login." });
-  }
+    if (r.rows.length) {
+      // Loga edição
+      await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'editado')", [id]);
+      res.json({ success: true, data: r.rows[0] });
+    } else {
+      res.status(404).json({ message: "Não encontrado" });
+    }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-/* ====================== PRODUTOS (CRUD) ====================== */
+// 3. EXCLUIR (Gera status 'excluido' PRETO)
+app.delete("/api/products/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Primeiro loga que foi excluído (enquanto ainda existe/está ativo)
+    await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'excluido')", [id]);
 
-// Listar Produtos (Apenas Ativos)
+    // Depois faz o Soft Delete
+    const r = await pool.query("UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id=$1 RETURNING *", [id]);
+
+    if (r.rows.length) res.json({ success: true });
+    else res.status(404).json({ message: "Não encontrado" });
+  } catch { res.status(500).json({ success: false }); }
+});
+
 app.get("/api/products", async (req, res) => {
   try {
     const r = await pool.query("SELECT * FROM produtos WHERE ativo = true ORDER BY nome ASC");
     res.json({ success: true, data: r.rows });
-  } catch {
-    res.status(500).json({ success: false, message: "Erro ao buscar produtos" });
-  }
+  } catch { res.status(500).json({ success: false }); }
 });
 
-// Cadastrar Produto
-app.post("/api/products", async (req, res) => {
-  const { nome, uid_etiqueta, descricao } = req.body;
-
-  if (!nome || !uid_etiqueta)
-    return res.status(400).json({ success: false, message: "Nome e UID são obrigatórios." });
-
-  try {
-    // Insere como ativo=true por padrão
-    const r = await pool.query(
-        `INSERT INTO produtos (nome, uid_etiqueta, descricao, ativo) VALUES ($1, $2, $3, true) RETURNING *`,
-        [nome, uid_etiqueta, descricao || null]
-    );
-    res.status(201).json({ success: true, data: r.rows[0] });
-  } catch (err) {
-    if (err.code === "23505")
-      return res.status(409).json({ success: false, message: "Esta etiqueta (UID) já está em uso." });
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Atualizar Produto
-app.put("/api/products/:id", async (req, res) => {
-  const { id } = req.params;
-  const { nome, uid_etiqueta, descricao } = req.body;
-  try {
-    const r = await pool.query(
-        `UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *`,
-        [nome, uid_etiqueta, descricao, id]
-    );
-    if (!r.rows.length) return res.status(404).json({ success: false, message: "Produto não encontrado." });
-    res.json({ success: true, data: r.rows[0] });
-  } catch {
-    res.status(500).json({ success: false, message: "Erro ao atualizar." });
-  }
-});
-
-// Deletar Produto (Soft Delete - Libera a Tag)
-app.delete("/api/products/:id", async (req, res) => {
-  try {
-    // Marca como inativo e remove o UID para que a etiqueta possa ser usada em outro produto
-    const r = await pool.query(
-        "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id=$1 RETURNING *",
-        [req.params.id]
-    );
-    if (!r.rows.length) return res.status(404).json({ success: false, message: "Produto não encontrado." });
-    res.json({ success: true, message: "Produto removido." });
-  } catch {
-    res.status(500).json({ success: false, message: "Erro ao deletar." });
-  }
-});
-
-/* ====================== MOVIMENTAÇÕES & INTEGRAÇÃO ESP32 ====================== */
-
-// Rota que o APP chama para pegar a tag lida (com Validade de 5s)
-app.get("/api/last-tag", (req, res) => {
-  if (!lastTagBuffer.uid || !lastTagBuffer.timestamp) {
-    return res.json({ uid: null });
-  }
-
-  const agora = new Date();
-  const horarioTag = new Date(lastTagBuffer.timestamp);
-  const diferencaSegundos = (agora - horarioTag) / 1000;
-
-  // Se a leitura tem mais de 5 segundos, considera expirada (evita loop e fantasmas)
-  if (diferencaSegundos > 5) {
-    lastTagBuffer = { uid: null, timestamp: null };
-    return res.json({ uid: null });
-  }
-
-  res.json(lastTagBuffer);
-});
-
-// Histórico de Movimentações
+// Histórico Geral
 app.get("/api/movements", async (req, res) => {
   try {
+    // Busca as últimas 100 movimentações com dados do produto
+    // Mesmo produtos excluídos aparecerão no histórico antigo (JOIN funciona se o ID não mudar)
     const r = await pool.query(`
-      SELECT mov.id, mov.timestamp, mov.tipo, prod.nome AS produto_nome
-      FROM movimentacoes mov
-      JOIN produtos prod ON mov.produto_id = prod.id
-      ORDER BY mov.timestamp DESC LIMIT 50
+      SELECT m.id, m.timestamp, m.tipo, p.nome, p.uid_etiqueta 
+      FROM movimentacoes m 
+      LEFT JOIN produtos p ON m.produto_id = p.id 
+      ORDER BY m.timestamp DESC 
+      LIMIT 100
     `);
     res.json({ success: true, data: r.rows });
-  } catch {
-    res.status(500).json({ success: false, message: "Erro no histórico." });
-  }
-});
-
-// Rota que o ESP32 chama (Entrada vs Saída)
-app.post("/api/movements", async (req, res) => {
-  const { uid, tipo } = req.body; // 'entrada' ou 'saida'
-
-  if (!uid) return res.status(400).json({ success: false, message: "UID obrigatória." });
-
-  // Salva no Buffer IMEDIATAMENTE (
-  lastTagBuffer = { uid, timestamp: new Date() };
-  console.log(`>>> ESP32 Leu: ${uid} | Modo: ${tipo || 'desconhecido'}`);
-
-  try {
-    // Verifica se o produto existe e está ATIVO
-    const prod = await pool.query("SELECT id FROM produtos WHERE uid_etiqueta=$1 AND ativo=true", [uid]);
-
-    // roduto não encontrado
-    if (!prod.rows.length) {
-      // Retorna 404 para o ESP32 dar erro visual, mas o buffer já salvou para cadastro.
-      return res.status(404).json({ success: false, message: "UID desconhecida." });
-    }
-
-    const produtoId = prod.rows[0].id;
-
-    //  Modo SAÍDA Caixa - Dar baixa
-    if (tipo === 'saida') {
-      // Registra saída no histórico
-      await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'saida')", [produtoId]);
-
-      // Remove do estoque Soft Delete
-      await pool.query("UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id=$1", [produtoId]);
-
-      return res.status(200).json({ success: true, message: "Saída registrada e produto baixado." });
-    }
-
-    // Cenario C: Modo ENTRADA (Padrão - Apenas registra leitura)
-    await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')", [produtoId]);
-    res.status(201).json({ success: true, message: "Leitura registrada." });
-
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Erro interno." });
+    res.status(500).json({ success: false });
   }
 });
 
-app.listen(port, () => {
-  console.log(`>>> Servidor rodando na porta ${port}`);
+// --- AUTH ---
+app.post("/auth/register", async (req, res) => {
+  const { nome, email, senha } = req.body;
+  try {
+    const hash = await bcrypt.hash(senha, 10);
+    const r = await pool.query("INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email", [nome, email, hash]);
+    res.status(201).json({ success: true, user: r.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
+
+app.post("/auth/login", async (req, res) => {
+  const { email, senha } = req.body;
+  try {
+    const r = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
+    if (!r.rows.length || !await bcrypt.compare(senha, r.rows[0].senha_hash))
+      return res.status(400).json({ message: "Inválido" });
+    const token = jwt.sign({ id: r.rows[0].id }, JWT_SECRET);
+    res.json({ success: true, token, user: r.rows[0] });
+  } catch { res.status(500).json({ message: "Erro servidor" }); }
+});
+
+app.listen(port, () => console.log(`Rodando na porta ${port}`));

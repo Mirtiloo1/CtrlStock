@@ -1,17 +1,19 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEyeSlash, faEye } from "@fortawesome/free-solid-svg-icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Cadastro() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
-  {
-    /* MELHORAR LOGICA DO CADASTRO */
-  }
-  const handleCadastro = (e) => {
+  const handleCadastro = async (e) => {
     e.preventDefault();
+    const nome = e.target.nome.value;
     const email = e.target.email.value;
     const senha = e.target.senha.value;
     const confirmarSenha = e.target.confirmarSenha.value;
@@ -21,7 +23,16 @@ export default function Cadastro() {
       return;
     }
 
-    console.log("Cadastro enviado:", { email, senha });
+    setLoading(true);
+    const result = await register(nome, email, senha);
+    setLoading(false);
+
+    if (result.success) {
+      alert("Conta criada! Faça login para continuar.");
+      navigate("/login");
+    } else {
+      alert(result.message || "Erro ao cadastrar.");
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -50,6 +61,24 @@ export default function Cadastro() {
         <div className="flex flex-col gap-4 sm:gap-5">
           <div className="space-y-2">
             <label
+              htmlFor="nome"
+              className="text-primary font-roboto font-medium text-sm sm:text-base"
+            >
+              Nome
+            </label>
+            <input
+              id="nome"
+              type="text"
+              name="nome"
+              required
+              disabled={loading}
+              className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
+              placeholder="Seu nome completo"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label
               htmlFor="email"
               className="text-primary font-roboto font-medium text-sm sm:text-base"
             >
@@ -60,7 +89,8 @@ export default function Cadastro() {
               type="email"
               name="email"
               required
-              className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors"
+              disabled={loading}
+              className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
               placeholder="seu.email@email.com"
             />
           </div>
@@ -79,13 +109,15 @@ export default function Cadastro() {
                 name="senha"
                 required
                 minLength="6"
-                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors"
+                disabled={loading}
+                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
                 placeholder="••••••••••"
               />
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors"
+                disabled={loading}
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors disabled:opacity-50"
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
                 <FontAwesomeIcon
@@ -109,13 +141,15 @@ export default function Cadastro() {
                 name="confirmarSenha"
                 required
                 minLength="6"
-                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors"
+                disabled={loading}
+                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
                 placeholder="••••••••••"
               />
               <button
                 type="button"
                 onClick={toggleConfirmPasswordVisibility}
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors"
+                disabled={loading}
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors disabled:opacity-50"
                 aria-label={
                   showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
                 }
@@ -131,12 +165,12 @@ export default function Cadastro() {
         <div className="space-y-4 sm:space-y-6 mt-2">
           <button
             type="submit"
-            className="w-full bg-primary h-12 sm:h-14 lg:h-16 text-white font-poppins font-bold text-base sm:text-lg lg:text-xl rounded-lg hover:bg-botao active:scale-95 transition-all duration-150 shadow-md"
+            disabled={loading}
+            className="w-full bg-primary h-12 sm:h-14 lg:h-16 text-white font-poppins font-bold text-base sm:text-lg lg:text-xl rounded-lg hover:bg-botao active:scale-95 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cadastrar
+            {loading ? "Cadastrando..." : "Cadastrar"}
           </button>
 
-          {/* Links auxiliares */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 text-primary justify-center items-center font-roboto text-xs sm:text-sm">
             <button
               type="button"
