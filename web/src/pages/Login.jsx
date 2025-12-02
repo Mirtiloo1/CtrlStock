@@ -1,19 +1,29 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEyeSlash, faEye } from "@fortawesome/free-solid-svg-icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  {
-    /* MELHORAR LOGICA DO LOGIN */
-  }
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
     const senha = e.target.senha.value;
-    console.log(email, senha);
+    
+    setLoading(true);
+    const result = await login(email, senha);
+    setLoading(false);
+
+    if (result.success) {
+      navigate("/");
+    } else {
+      alert(result.message || "Email ou senha incorretos.");
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -47,7 +57,8 @@ export default function Login() {
               type="email"
               name="email"
               required
-              className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors"
+              disabled={loading}
+              className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
               placeholder="seu.email@email.com"
             />
           </div>
@@ -64,13 +75,15 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 name="senha"
                 required
-                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors"
+                disabled={loading}
+                className="border-2 border-neutral-300 w-full h-12 sm:h-14 lg:h-16 rounded-lg px-4 pr-12 text-sm sm:text-base focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
                 placeholder="••••••••••"
               />
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors"
+                disabled={loading}
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-neutral-600 hover:text-primary transition-colors disabled:opacity-50"
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
                 <FontAwesomeIcon
@@ -85,9 +98,10 @@ export default function Login() {
         <div className="space-y-4 sm:space-y-6 mt-2">
           <button
             type="submit"
-            className="w-full bg-primary h-12 sm:h-14 lg:h-16 text-white font-poppins font-bold text-base sm:text-lg lg:text-xl rounded-lg hover:bg-botao active:scale-95 transition-all duration-150 shadow-md"
+            disabled={loading}
+            className="w-full bg-primary h-12 sm:h-14 lg:h-16 text-white font-poppins font-bold text-base sm:text-lg lg:text-xl rounded-lg hover:bg-botao active:scale-95 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </button>
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 text-primary justify-center items-center font-roboto text-xs sm:text-sm">

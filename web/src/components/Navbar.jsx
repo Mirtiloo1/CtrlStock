@@ -25,7 +25,6 @@ function Navbar() {
 
       <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
         <ButtonLogar />
-        <UsuarioLogado />
       </div>
     </nav>
   );
