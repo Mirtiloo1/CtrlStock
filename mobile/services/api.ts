@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "https://ctrlstock-api.onrender.com";
+// Certifique-se que essa URL é a do seu Render ativo
+const API_URL = "https://ctrlstock-api.onrender.com"; 
 
 export const api = {
+  // --- LISTAGEM ---
   getProdutos: async () => {
     try {
       const response = await fetch(`${API_URL}/api/products`);
@@ -11,17 +13,6 @@ export const api = {
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
       return [];
-    }
-  },
-
-  getUltimaTagLida: async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/last-tag`);
-      const json = await response.json();
-      return json;
-    } catch (error) {
-      console.error("Erro ao ler tag:", error);
-      return { uid: null };
     }
   },
 
@@ -36,6 +27,21 @@ export const api = {
     }
   },
 
+  // --- IOT & HARDWARE (A CORREÇÃO ESTÁ AQUI) ---
+  getUltimaTagLida: async () => {
+    try {
+      // CORRIGIDO: De /api/last-tag para /api/last-unknown
+      // Isso conecta com a rota do Backend que criamos no index.js
+      const response = await fetch(`${API_URL}/api/last-unknown`);
+      const json = await response.json();
+      return json; // Retorna { uid: "..." } ou { uid: null }
+    } catch (error) {
+      console.error("Erro ao ler tag do buffer:", error);
+      return { uid: null };
+    }
+  },
+
+  // --- OPERAÇÕES DE PRODUTO ---
   cadastrarProduto: async (nome: string, uid: string, descricao: string) => {
     try {
       const response = await fetch(`${API_URL}/api/products`, {
@@ -50,12 +56,7 @@ export const api = {
     }
   },
 
-  atualizarProduto: async (
-    id: number,
-    nome: string,
-    uid: string,
-    descricao: string
-  ) => {
+  atualizarProduto: async (id: number, nome: string, uid: string, descricao: string) => {
     try {
       const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "PUT",
@@ -74,13 +75,9 @@ export const api = {
       const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "DELETE",
       });
-
+      
       if (response.ok) {
-        try {
-          return await response.json();
-        } catch {
-          return { success: true };
-        }
+        try { return await response.json(); } catch { return { success: true }; }
       }
       return { success: false, message: "Falha ao deletar." };
     } catch (error) {
@@ -99,7 +96,6 @@ export const api = {
       });
       return await response.json();
     } catch (error) {
-      console.error("Erro no cadastro:", error);
       return { success: false, message: "Erro de conexão." };
     }
   },
@@ -115,18 +111,14 @@ export const api = {
 
       if (json.success && json.token) {
         await AsyncStorage.setItem("@ctrlstock_token", json.token);
-        await AsyncStorage.setItem(
-          "@ctrlstock_user",
-          JSON.stringify(json.user)
-        );
+        await AsyncStorage.setItem("@ctrlstock_user", JSON.stringify(json.user));
       }
-
       return json;
     } catch (error) {
-      console.error("Erro no login:", error);
       return { success: false, message: "Erro de conexão." };
     }
   },
+
   logout: async () => {
     await AsyncStorage.removeItem("@ctrlstock_token");
     await AsyncStorage.removeItem("@ctrlstock_user");

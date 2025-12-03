@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar/Navbar";
 import { api } from "@/services/api";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { Ionicons } from "@expo/vector-icons"; 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File, Paths } from "expo-file-system";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -21,12 +22,34 @@ import {
 } from "react-native";
 import { styles } from "../../styles/_historicoStyles";
 
+// --- CÉREBRO VISUAL (Configuração de Cores e Texto) ---
+const getStatusConfig = (tipo: string) => {
+  const t = tipo ? tipo.toLowerCase() : '';
+  
+  switch (t) {
+    case 'entrada':
+      return { color: '#00B37E', label: 'Entrada', icon: 'arrow-down-circle' }; // Verde
+    case 'saida':
+      return { color: '#F75A68', label: 'Saída', icon: 'arrow-up-circle' }; // Vermelho
+    case 'leitura':        // O Banco grava 'leitura'
+    case 'movimentacao':   // Backend manda isso
+      return { color: '#8D8D99', label: 'Movimentação', icon: 'swap-horizontal' }; // Cinza (Mostra Movimentação)
+    case 'editado':
+      return { color: '#FBA94C', label: 'Editado', icon: 'create' }; // Laranja
+    case 'excluido':
+      return { color: '#000000', label: 'Excluído', icon: 'trash' }; // Preto (SEM NEGRITO)
+    default:
+      return { color: '#C4C4CC', label: tipo || 'Outro', icon: 'help-circle' };
+  }
+};
+
 interface LogItem {
   id: string;
   produto: string;
   data: string;
   hora: string;
   acao: string;
+  uid?: string;
 }
 
 export default function Historico() {
@@ -63,10 +86,11 @@ export default function Historico() {
         const { data, hora } = formatarDataHora(item.timestamp);
         return {
           id: item.id.toString(),
-          produto: item.produto_nome || "Desconhecido",
+          produto: item.produto_nome || "Produto Deletado",
           data: data,
           hora: hora,
-          acao: item.tipo === "leitura" ? "Entrada" : item.tipo,
+          acao: item.tipo, 
+          uid: item.uid_etiqueta
         };
       });
 
@@ -93,7 +117,7 @@ export default function Historico() {
             
             intervalPolling = setInterval(() => {
               carregarDados(true);
-            }, 5000);
+            }, 3000); // Atualiza a cada 3s para ficar mais rápido
           }
         } catch {
           setIsAuthenticated(false);
@@ -138,11 +162,13 @@ export default function Historico() {
         return;
       }
 
-      const cabecalho = "ID;Produto;Data;Hora;Acao\n";
+      const cabecalho = "ID;Produto;UID;Data;Hora;Acao\n";
       const linhas = dadosFiltrados
         .map(
-          (item) =>
-            `${item.id};${item.produto};="${item.data}";="${item.hora}";${item.acao}`
+          (item) => {
+            const config = getStatusConfig(item.acao);
+            return `${item.id};${item.produto};${item.uid || ''};="${item.data}";="${item.hora}";${config.label}`;
+          }
         )
         .join("\n");
 
@@ -168,24 +194,38 @@ export default function Historico() {
     }
   }, [dadosFiltrados]);
 
-  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<LogItem>) => (
-    <View style={[styles.linha, index % 2 === 1 && styles.linhaAlt]}>
-      <Text style={[styles.celulaData, styles.colID]}>{item.id}</Text>
-      <Text style={[styles.celulaData, styles.colProduto]}>{item.produto}</Text>
-      <Text style={[styles.celulaData, styles.colData]}>{item.data}</Text>
-      <Text style={[styles.celulaData, styles.colHora]}>{item.hora}</Text>
-      <Text
-        style={[
-          styles.celulaData,
-          item.acao && item.acao.toLowerCase().includes("entrada")
-            ? styles.colAcaoEntrada
-            : styles.colAcaoSaida,
-        ]}
-      >
-        {item.acao}
-      </Text>
-    </View>
-  ), []);
+  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<LogItem>) => {
+    const statusConfig = getStatusConfig(item.acao);
+    
+    return (
+      <View style={[styles.linha, index % 2 === 1 && styles.linhaAlt]}>
+        <Text style={[styles.celulaData, styles.colID]}>{item.id}</Text>
+        <Text style={[styles.celulaData, styles.colProduto]} numberOfLines={1}>
+          {item.produto}
+        </Text>
+        <Text style={[styles.celulaData, styles.colData]}>{item.data}</Text>
+        <Text style={[styles.celulaData, styles.colHora]}>{item.hora}</Text>
+        
+        {/* Célula de Ação Personalizada */}
+        <View style={[styles.celulaData, styles.colAcao, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}>
+           <Ionicons 
+              name={statusConfig.icon as any} 
+              size={14} 
+              color={statusConfig.color} 
+              style={{ marginRight: 4 }}
+           />
+           <Text style={{ 
+             color: statusConfig.color, 
+             fontWeight: 'bold',
+             fontSize: 12,
+             textTransform: 'uppercase'
+           }}>
+             {statusConfig.label}
+           </Text>
+        </View>
+      </View>
+    );
+  }, []);
 
   if (isAuthenticated === null || (uiState.loading && logs.length === 0)) {
     return (
