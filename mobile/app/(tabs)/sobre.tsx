@@ -1,60 +1,51 @@
 import React from "react";
-import {
-  FlatList,
-  Linking,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import Navbar from "@/components/Navbar/Navbar";
 import { Colors } from "@/constants/Colors";
 import {
-  FontAwesome,
   FontAwesome5,
   FontAwesome6,
   MaterialIcons,
+  Fontisto,
 } from "@expo/vector-icons";
-import Fontisto from "@expo/vector-icons/Fontisto";
 import { styles } from "../../styles/_sobreStyles";
 
+// Dados das Tecnologias
 const techData = [
   {
     key: "react",
-    icon: <FontAwesome5 name="react" size={60} color="white" />,
+    icon: <FontAwesome5 name="react" size={32} color={Colors.primary} />,
     title: "React Native",
-    subtitle: "Framework Frontend",
+    subtitle: "Interface Mobile",
+  },
+  {
+    key: "js",
+    icon: <FontAwesome5 name="js-square" size={32} color={Colors.primary} />,
+    title: "JavaScript",
+    subtitle: "Lógica",
   },
   {
     key: "node",
-    icon: <Fontisto name="nodejs" size={60} color="white" />,
-    title: "NodeJs",
-    subtitle: "Backend e APIs",
+    icon: <Fontisto name="nodejs" size={28} color={Colors.primary} />,
+    title: "Node.js",
+    subtitle: "API Backend",
   },
   {
     key: "nfc",
-    icon: <FontAwesome5 name="wifi" size={60} color="white" />,
+    icon: <FontAwesome5 name="wifi" size={28} color={Colors.primary} />,
     title: "NFC",
-    subtitle: "Sinal por Proximidade",
+    subtitle: "Comunicação",
   },
   {
     key: "esp32",
-    icon: <FontAwesome6 name="microchip" size={60} color="white" />,
+    icon: <FontAwesome6 name="microchip" size={32} color={Colors.primary} />,
     title: "ESP32",
-    subtitle: "Microcontrolador IoT",
+    subtitle: "Hardware IoT",
   },
 ];
 
-const TechCard = ({ item }: { item: (typeof techData)[0] }) => (
-  <View style={styles.card}>
-    {item.icon}
-    <Text style={styles.cardText}>{item.title}</Text>
-    <Text style={styles.cardSubText}>{item.subtitle}</Text>
-  </View>
-);
-
-export default function Historico() {
+export default function Sobre() {
   return (
     <View style={styles.container}>
       <Navbar />
@@ -63,119 +54,102 @@ export default function Historico() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.ctrlStock}>
-          <Text style={styles.mainTitle}>Projeto CtrlStock</Text>
-          <Text style={styles.text}>
-            O presente projeto tem como finalidade o desenvolvimento de um
-            protótipo de Sistema de Controle de Estoque por Aproximação,
-            utilizando a tecnologia de comunicação por campo de proximidade
-            (NFC) para monitorar e registrar a movimentação de produtos. A
-            proposta busca demonstrar, de forma simplificada e de baixo custo, a
-            lógica e a viabilidade de sistemas de inventário automatizado.
+        {/* 1. Cabeçalho */}
+        <View style={styles.headerSection}>
+          <Text style={styles.mainTitle}>
+            Projeto <Text style={styles.titleHighlight}>CtrlStock</Text>
+          </Text>
+          <Text style={styles.description}>
+            Um protótipo de Sistema de Controle de Estoque por Aproximação
+            (NFC), demonstrando viabilidade técnica e automação de baixo custo
+            para gestão de inventário.
           </Text>
         </View>
 
-        <View style={styles.cardContainer}>
-          <Text style={styles.mainTitle}>Tecnologias Usadas</Text>
-          <FlatList
-            data={techData}
-            renderItem={({ item }) => <TechCard item={item} />}
-            keyExtractor={(item) => item.key}
-            numColumns={2}
-            scrollEnabled={false}
-            columnWrapperStyle={{ gap: 16 }}
-            contentContainerStyle={{ gap: 16, marginTop: 24 }}
-          />
+        {/* 2. Divisor Tecnologias */}
+        <View style={styles.dividerSection}>
+          <View style={styles.line} />
+          <Text style={styles.sectionTitle}>Tecnologias Utilizadas</Text>
+          <View style={styles.line} />
         </View>
 
-        <View style={styles.objetivoContainer}>
-          <Text style={styles.mainTitle}>Objetivo do Sistema</Text>
+        {/* 3. Grid de Cards Tech */}
+        <View style={styles.techGrid}>
+          {techData.map((item) => (
+            <View key={item.key} style={styles.techCard}>
+              <View style={styles.iconCircle}>{item.icon}</View>
+              <Text style={styles.techTitle}>{item.title}</Text>
+              <Text style={styles.techSubtitle}>{item.subtitle}</Text>
+            </View>
+          ))}
+        </View>
 
-          <View style={styles.cardObjetivos}>
-            <FontAwesome5
-              name="boxes"
-              size={24}
-              color={Colors.primary}
-              style={styles.iconObjetivo}
-            />
-            <Text style={styles.textObjetivo}>
-              <Text style={styles.textObjetivoTitle}>Controle de Estoque:</Text>
-              Monitoramento em tempo real da movimentação de produtos
-            </Text>
+        {/* 4. Objetivos do Sistema */}
+        <View style={styles.objectivesCard}>
+          <Text style={styles.objectivesTitle}>Objetivos do Sistema</Text>
+
+          <View style={styles.objectiveItem}>
+            <View style={styles.objIconBox}>
+              <FontAwesome5 name="boxes" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.objTextContainer}>
+              <Text style={styles.objTitle}>Controle de Estoque</Text>
+              <Text style={styles.objDesc}>
+                Monitoramento em tempo real da movimentação de produtos.
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.cardObjetivos}>
-            <MaterialIcons
-              name="smartphone"
-              size={24}
-              color={Colors.primary}
-              style={styles.iconObjetivo}
-            />
-            <Text style={styles.textObjetivo}>
-              <Text style={styles.textObjetivoTitle}>Tecnologia NFC: </Text>
-              Identificação rápida e segura através de tags NFC
-            </Text>
+          <View style={styles.objectiveItem}>
+            <View style={styles.objIconBox}>
+              <MaterialIcons
+                name="smartphone"
+                size={22}
+                color={Colors.primary}
+              />
+            </View>
+            <View style={styles.objTextContainer}>
+              <Text style={styles.objTitle}>Tecnologia NFC</Text>
+              <Text style={styles.objDesc}>
+                Identificação rápida e segura através de tags e leitores.
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.cardObjetivos}>
-            <MaterialIcons
-              name="attach-money"
-              size={24}
-              color={Colors.primary}
-              style={styles.iconObjetivo}
-            />
-            <Text style={styles.textObjetivo}>
-              <Text style={styles.textObjetivoTitle}>Baixo Custo: </Text>
-              Solução acessível para pequenas e médias empresas
-            </Text>
+          <View style={styles.objectiveItem}>
+            <View style={styles.objIconBox}>
+              <MaterialIcons
+                name="attach-money"
+                size={22}
+                color={Colors.primary}
+              />
+            </View>
+            <View style={styles.objTextContainer}>
+              <Text style={styles.objTitle}>Baixo Custo</Text>
+              <Text style={styles.objDesc}>
+                Solução acessível para pequenas e médias empresas com ESP32.
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.cardObjetivos}>
-            <FontAwesome6
-              name="bolt-lightning"
-              size={24}
-              color={Colors.primary}
-              style={styles.iconObjetivo}
-            />
-            <Text style={styles.textObjetivo}>
-              <Text style={styles.textObjetivoTitle}>Automação: </Text>
-              Redução de erros humanos e agilidade nos processos
-            </Text>
+          <View style={styles.objectiveItem}>
+            <View style={styles.objIconBox}>
+              <FontAwesome6
+                name="bolt-lightning"
+                size={18}
+                color={Colors.primary}
+              />
+            </View>
+            <View style={styles.objTextContainer}>
+              <Text style={styles.objTitle}>Automação</Text>
+              <Text style={styles.objDesc}>
+                Redução drástica de erros humanos e agilidade nos processos.
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerTitle}>Contato</Text>
-
-          <View style={styles.contactInfo}>
-            <MaterialIcons name="email" size={20} color={Colors.primary} />
-            <Text style={styles.contactEmail}>contato@ctrlstock.com</Text>
-          </View>
-
-          <View style={styles.socialLinksContainer}>
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() =>
-                Linking.openURL("mailto:murilonunes2101@gmail.com")
-              }
-            >
-              <FontAwesome name="google" size={22} color="white" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={() => Linking.openURL("https://github.com/Mirtiloo1/ctrlStock")}
-            >
-              <FontAwesome name="github" size={22} color="white" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton} onPress={() => {}}>
-              <FontAwesome name="whatsapp" size={22} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.divider} />
-
+        <View style={styles.footer}>
           <Text style={styles.footerText}>
             © 2025 CtrlStock. Todos os direitos reservados.
           </Text>
@@ -184,7 +158,6 @@ export default function Historico() {
           </Text>
         </View>
       </ScrollView>
-      <View style={{ height: 60 }} />
     </View>
   );
 }

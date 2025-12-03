@@ -20,7 +20,7 @@ export default function Historico() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
-  // Função auxiliar para configurar cores e ícones baseada no tipo (Igual ao Mobile adaptado para Web)
+  // Função auxiliar para configurar cores e ícones baseada no tipo
   const getStatusConfig = (tipo) => {
     const t = tipo ? tipo.toLowerCase() : "";
 
@@ -60,7 +60,7 @@ export default function Historico() {
         return {
           label: tipo || "Outro",
           icon: faCheck,
-          style: "bg-slate-50 text-white border-slate-200",
+          style: "bg-slate-50 text-slate-600 border-slate-200",
         };
     }
   };
@@ -69,27 +69,15 @@ export default function Historico() {
     try {
       if (!silencioso) setLoading(true);
 
-      const [movimentosData, produtosData] = await Promise.all([
-        api.getMovimentacoes(),
-        api.getProdutos(),
-      ]);
-
-      const mapaProdutos = {};
-      produtosData.forEach((p) => {
-        if (p.nome) {
-          mapaProdutos[p.nome.toLowerCase().trim()] = p.uid_etiqueta;
-        }
-      });
+      const movimentosData = await api.getMovimentacoes();
 
       const formatados = movimentosData.map((m) => {
         const dataObj = new Date(m.timestamp);
         const nomeProduto = m.nome || "Produto Deletado";
-        const uidProduto = m.uid_etiqueta || "N/A";
 
         return {
           id: m.id,
           produto: nomeProduto,
-          uid: uidProduto,
           tipo: m.tipo,
           dataObj: dataObj,
           data: dataObj.toLocaleDateString("pt-BR"),
@@ -120,7 +108,7 @@ export default function Historico() {
     const termo = busca.toLowerCase();
     const matchTexto =
       item.produto.toLowerCase().includes(termo) ||
-      item.uid.toLowerCase().includes(termo);
+      item.id.toString().includes(termo);
 
     let matchData = true;
     if (dataInicio) {
@@ -144,9 +132,9 @@ export default function Historico() {
     }
 
     const csvContent = [
-      ["UID", "Produto", "Tipo", "Data", "Hora"].join(";"),
+      ["ID", "Produto", "Tipo", "Data", "Hora"].join(";"),
       ...dadosFiltrados.map((p) =>
-        [p.uid, p.produto, p.tipo, p.data, p.hora].join(";")
+        [p.id, p.produto, p.tipo, p.data, p.hora].join(";")
       ),
     ].join("\n");
 
@@ -188,7 +176,7 @@ export default function Historico() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por produto ou UID..."
+              placeholder="Buscar por produto ou ID..."
               className="w-full border border-zinc-400 bg-white rounded-lg h-11 sm:h-12 p-3 sm:p-4 pr-10 sm:pr-12 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all text-sm sm:text-base shadow-sm"
             />
           </div>
@@ -225,12 +213,11 @@ export default function Historico() {
           <thead>
             <tr className="bg-primary sticky top-0 z-10 shadow-sm border-b border-slate-200">
               <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
-                UID (Etiqueta)
+                ID
               </th>
               <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 Produto
               </th>
-              {/* NOVA COLUNA AÇÃO */}
               <th className="text-center py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 Ação
               </th>
@@ -253,7 +240,7 @@ export default function Historico() {
               <tr>
                 <td colSpan="5" className="text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center gap-2">
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-slate-600">
                       {busca || dataInicio || dataFim
                         ? "Nenhum resultado encontrado."
                         : "Nenhuma movimentação registrada."}
@@ -270,13 +257,13 @@ export default function Historico() {
                     key={item.id}
                     className="border-b border-slate-200 last:border-0 hover:bg-slate-50 transition-colors duration-200"
                   >
-                    <td className="py-4 px-6 text-slate-500 text-sm font-mono">
-                      {item.uid}
+                    <td className="py-4 px-6 text-slate-700 text-sm font-mono font-semibold">
+                      {item.id}
                     </td>
                     <td className="py-4 px-6 text-slate-800 font-semibold text-sm sm:text-base">
                       {item.produto}
                     </td>
-                    
+
                     {/* CÉLULA AÇÃO COM BADGE */}
                     <td className="py-4 px-6">
                       <div className="flex justify-center">
@@ -289,10 +276,10 @@ export default function Historico() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-6 text-white text-sm">
+                    <td className="py-4 px-6 text-slate-700 text-sm">
                       {item.data}
                     </td>
-                    <td className="py-4 px-6 text-white text-sm">
+                    <td className="py-4 px-6 text-slate-700 text-sm">
                       {item.hora}
                     </td>
                   </tr>

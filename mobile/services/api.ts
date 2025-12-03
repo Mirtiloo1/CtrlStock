@@ -7,7 +7,7 @@ export const api = {
   // --- LISTAGEM ---
   getProdutos: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/products`); // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/api/products`);
       const json = await response.json();
       return json.data || [];
     } catch (error) {
@@ -18,7 +18,7 @@ export const api = {
 
   getMovimentacoes: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/movements`); // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/api/movements`);
       const json = await response.json();
       return json.data || [];
     } catch (error) {
@@ -27,10 +27,12 @@ export const api = {
     }
   },
 
-  // --- IOT & HARDWARE ---
+  // --- IOT & HARDWARE (A CORREÇÃO ESTÁ AQUI) ---
   getUltimaTagLida: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/last-unknown`); // ✅ CORRIGIDO
+      // CORRIGIDO: De /api/last-tag para /api/last-unknown
+      // Isso conecta com a rota do Backend que criamos no index.js
+      const response = await fetch(`${API_URL}/api/last-unknown`);
       const json = await response.json();
       return json; // Retorna { uid: "..." } ou { uid: null }
     } catch (error) {
@@ -42,7 +44,7 @@ export const api = {
   // --- OPERAÇÕES DE PRODUTO ---
   cadastrarProduto: async (nome: string, uid: string, descricao: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/products`, { // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/api/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome, uid_etiqueta: uid, descricao }),
@@ -56,7 +58,7 @@ export const api = {
 
   atualizarProduto: async (id: number, nome: string, uid: string, descricao: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/products/${id}`, { // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome, uid_etiqueta: uid, descricao }),
@@ -70,16 +72,12 @@ export const api = {
 
   deletarProduto: async (id: number) => {
     try {
-      const response = await fetch(`${API_URL}/api/products/${id}`, { // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "DELETE",
       });
       
       if (response.ok) {
-        try { 
-          return await response.json(); 
-        } catch { 
-          return { success: true }; 
-        }
+        try { return await response.json(); } catch { return { success: true }; }
       }
       return { success: false, message: "Falha ao deletar." };
     } catch (error) {
@@ -91,7 +89,7 @@ export const api = {
   // === AUTENTICAÇÃO ===
   cadastrarUsuario: async (nome: string, email: string, senha: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, { // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome, email, senha }),
@@ -104,13 +102,13 @@ export const api = {
 
   login: async (email: string, senha: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, { // ✅ CORRIGIDO
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, senha }),
       });
       const json = await response.json();
-      
+
       if (json.success && json.token) {
         await AsyncStorage.setItem("@ctrlstock_token", json.token);
         await AsyncStorage.setItem("@ctrlstock_user", JSON.stringify(json.user));

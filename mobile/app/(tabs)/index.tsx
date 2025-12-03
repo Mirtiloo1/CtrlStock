@@ -22,37 +22,83 @@ import { styles as indexStyles } from "../../styles/_IndexStyles";
 import { api } from "@/services/api";
 
 interface LogItemProps {
-  type: "IN" | "OUT";
+  type: string; // Agora aceita qualquer tipo de ação
   item: string;
   quantity: number;
   timestamp: string;
 }
 
 const getLogStyle = (type: string) => {
-  if (type === "IN") {
-    return {
-      bg: "#ecfdf5", // green-50
-      iconColor: "#16a34a", // green-600
-      borderColor: "#bbf7d0", // green-200
-      badgeBg: "#ecfdf5",
-      badgeText: "#15803d", // green-700
-      badgeBorder: "#bbf7d0",
-      iconName: "arrow-up",
-      label: "ENTRADA",
-      prefix: "+",
-    };
-  } else {
-    return {
-      bg: "#fef2f2", // red-50
-      iconColor: "#dc2626", // red-600
-      borderColor: "#fecaca", // red-200
-      badgeBg: "#fef2f2",
-      badgeText: "#b91c1c", // red-700
-      badgeBorder: "#fecaca",
-      iconName: "arrow-down",
-      label: "SAÍDA",
-      prefix: "-",
-    };
+  const tipoNormalizado = type ? type.toLowerCase() : "entrada";
+
+  switch (tipoNormalizado) {
+    case "entrada":
+      return {
+        bg: "#ecfdf5", // green-50
+        iconColor: "#16a34a", // green-600
+        borderColor: "#bbf7d0", // green-200
+        badgeBg: "#ecfdf5",
+        badgeText: "#15803d", // green-700
+        badgeBorder: "#bbf7d0",
+        iconName: "arrow-up",
+        label: "ENTRADA",
+      };
+    case "saida":
+      return {
+        bg: "#fef2f2", // red-50
+        iconColor: "#dc2626", // red-600
+        borderColor: "#fecaca", // red-200
+        badgeBg: "#fef2f2",
+        badgeText: "#b91c1c", // red-700
+        badgeBorder: "#fecaca",
+        iconName: "arrow-down",
+        label: "SAÍDA",
+      };
+    case "leitura":
+    case "movimentacao":
+      return {
+        bg: "#eff6ff", // blue-50
+        iconColor: "#1d4ed8", // blue-700
+        borderColor: "#bfdbfe", // blue-200
+        badgeBg: "#eff6ff",
+        badgeText: "#1d4ed8",
+        badgeBorder: "#bfdbfe",
+        iconName: "exchange",
+        label: "MOVIMENTAÇÃO",
+      };
+    case "editado":
+      return {
+        bg: "#fffbeb", // amber-50
+        iconColor: "#b45309", // amber-700
+        borderColor: "#fde68a", // amber-200
+        badgeBg: "#fffbeb",
+        badgeText: "#b45309",
+        badgeBorder: "#fde68a",
+        iconName: "pencil",
+        label: "EDITADO",
+      };
+    case "excluido":
+      return {
+        bg: "#f9fafb", // gray-50
+        iconColor: "#6b7280", // gray-600
+        borderColor: "#e5e7eb", // gray-200
+        badgeBg: "#f9fafb",
+        badgeText: "#374151", // gray-700
+        badgeBorder: "#e5e7eb",
+        iconName: "trash",
+        label: "EXCLUÍDO",
+      };
+    default:
+      return {
+        bg: "#f8fafc", // slate-50
+        iconColor: "#64748b", // slate-500
+        borderColor: "#e2e8f0", // slate-200
+        badgeBg: "#f8fafc",
+        badgeText: "#64748b",
+        badgeBorder: "#e2e8f0",
+        iconName: "circle",
+        label: "OUTRO",
+      };
   }
 };
 
@@ -130,12 +176,10 @@ export default function Index() {
           novoUltimoItem = movimentos[0];
         }
 
+        // ✅ ATUALIZADO: Agora mantém o tipo original da ação
         novosLogs = movimentos.slice(0, 5).map((m: any) => ({
-          type:
-            m.tipo === "leitura" || m.tipo === "cadastro" || m.tipo === "entrada"
-              ? "IN"
-              : "OUT",
-          item: m.produto_nome || "Produto Desconhecido",
+          type: m.tipo || "entrada", // Mantém o tipo original (entrada, saida, leitura, editado, excluido)
+          item: m.nome || "Produto Desconhecido",
           quantity: 1,
           timestamp: formatarData(m.timestamp),
         }));
@@ -215,7 +259,7 @@ export default function Index() {
                 {uiState.loading && !data.ultimoItem
                   ? "Carregando..."
                   : data.ultimoItem
-                  ? data.ultimoItem.produto_nome
+                  ? data.ultimoItem.nome || "Produto Desconhecido"
                   : "Aguardando leitura..."}
               </Text>
             </View>
@@ -311,9 +355,6 @@ export default function Index() {
                         </View>
                         
                         <View style={indexStyles.logDetails}>
-                            <Text style={indexStyles.logProduct} numberOfLines={1}>
-                                {style.prefix} 1 {log.item}
-                            </Text>
                             <Text style={indexStyles.logTime}>{log.timestamp}</Text>
                         </View>
                     </View>

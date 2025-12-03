@@ -21,7 +21,7 @@ export default function LeftNavbar() {
   return (
     <>
       {/* Mobile */}
-      <aside className="lg:hidden w-full bg-white border-t border-slate-200 fixed bottom-0 z-40 sm:relative sm:bottom-auto">
+      <aside className="lg:hidden w-full bg-white border-t border-slate-300 fixed bottom-0 z-40 sm:relative sm:bottom-auto">
         <nav className="w-full px-4 py-2">
           <ul className="flex gap-2 justify-around">
             {navItems.map(({ path, icon: Icon, label }) => (
