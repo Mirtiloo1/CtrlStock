@@ -22,24 +22,60 @@ import {
 } from "react-native";
 import { styles } from "../../styles/_historicoStyles";
 
-// --- CÉREBRO VISUAL (Configuração de Cores e Texto) ---
+// Configuração de Cores para os Badges
 const getStatusConfig = (tipo: string) => {
   const t = tipo ? tipo.toLowerCase() : '';
   
   switch (t) {
     case 'entrada':
-      return { color: '#00B37E', label: 'Entrada', icon: 'arrow-down-circle' }; // Verde
+      return { 
+        bg: '#ecfdf5', // green-50
+        text: '#15803d', // green-700
+        border: '#bbf7d0', // green-200
+        label: 'Entrada',
+        icon: 'arrow-up-circle'
+      };
     case 'saida':
-      return { color: '#F75A68', label: 'Saída', icon: 'arrow-up-circle' }; // Vermelho
-    case 'leitura':        // O Banco grava 'leitura'
-    case 'movimentacao':   // Backend manda isso
-      return { color: '#8D8D99', label: 'Movimentação', icon: 'swap-horizontal' }; // Cinza (Mostra Movimentação)
+      return { 
+        bg: '#fef2f2', // red-50
+        text: '#b91c1c', // red-700
+        border: '#fecaca', // red-200
+        label: 'Saída',
+        icon: 'arrow-down-circle'
+      };
+    case 'leitura': 
+    case 'movimentacao':
+      return { 
+        bg: '#eff6ff', // blue-50
+        text: '#1d4ed8', // blue-700
+        border: '#bfdbfe', // blue-200
+        label: 'Movimento',
+        icon: 'swap-horizontal' 
+      };
     case 'editado':
-      return { color: '#FBA94C', label: 'Editado', icon: 'create' }; // Laranja
+      return { 
+        bg: '#fffbeb', // amber-50
+        text: '#b45309', // amber-700
+        border: '#fde68a', // amber-200
+        label: 'Editado',
+        icon: 'create'
+      };
     case 'excluido':
-      return { color: '#000000', label: 'Excluído', icon: 'trash' }; // Preto (SEM NEGRITO)
+      return { 
+        bg: '#f9fafb', // gray-50
+        text: '#374151', // gray-700
+        border: '#e5e7eb', // gray-200
+        label: 'Excluído',
+        icon: 'trash'
+      };
     default:
-      return { color: '#C4C4CC', label: tipo || 'Outro', icon: 'help-circle' };
+      return { 
+        bg: '#f8fafc', 
+        text: '#64748b', 
+        border: '#e2e8f0', 
+        label: tipo || 'Outro',
+        icon: 'help-circle'
+      };
   }
 };
 
@@ -70,29 +106,58 @@ export default function Historico() {
     const dataObj = new Date(isoString);
     return {
       data: dataObj.toLocaleDateString("pt-BR"),
-      hora: dataObj.toLocaleTimeString("pt-BR"),
+      hora: dataObj.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
     };
   };
 
+  // CORREÇÃO AQUI: Buscando Produtos + Movimentos para cruzar o UID
   const carregarDados = useCallback(async (silencioso = false) => {
     if (!silencioso) {
       setUiState((prev) => ({ ...prev, loading: true }));
     }
 
     try {
-      const dadosBrutos: any[] = await api.getMovimentacoes();
+      // 1. Busca Movimentos E Produtos (Promise.all para ser rápido)
+      const [movimentosData, produtosData] = await Promise.all([
+        api.getMovimentacoes(),
+        api.getProdutos().catch(() => []), // Evita erro se falhar produtos
+      ]);
 
-      const dadosFormatados: LogItem[] = dadosBrutos.map((item: any) => {
+      // 2. Cria um mapa: Nome do Produto -> UID (para busca rápida)
+      const mapaProdutos: Record<string, string> = {};
+      if (Array.isArray(produtosData)) {
+        produtosData.forEach((p: any) => {
+          if (p.nome) {
+            // Normaliza para minúsculo para evitar erros de case sensitive
+            mapaProdutos[p.nome.toLowerCase().trim()] = p.uid_etiqueta;
+          }
+        });
+      }
+
+      // 3. Cruza os dados
+      const dadosFormatados: LogItem[] = movimentosData.map((item: any) => {
         const { data, hora } = formatarDataHora(item.timestamp);
+        const nomeProduto = item.nome || "Produto Deletado";
+        
+        // Tenta pegar o UID direto do log. Se não tiver, busca no mapa de produtos.
+        let uidFinal = item.uid_etiqueta;
+        
+        if (!uidFinal && nomeProduto !== "Produto Deletado") {
+             uidFinal = mapaProdutos[nomeProduto.toLowerCase().trim()];
+        }
+
         return {
           id: item.id.toString(),
-          produto: item.produto_nome || "Produto Deletado",
+          produto: nomeProduto,
           data: data,
           hora: hora,
           acao: item.tipo, 
-          uid: item.uid_etiqueta
+          uid: uidFinal || "---" // Se ainda assim não achar, mostra traços
         };
       });
+
+      // Ordenar por ID decrescente (mais recente primeiro)
+      dadosFormatados.sort((a, b) => Number(b.id) - Number(a.id));
 
       setLogs(dadosFormatados);
     } catch (error) {
@@ -117,7 +182,7 @@ export default function Historico() {
             
             intervalPolling = setInterval(() => {
               carregarDados(true);
-            }, 3000); // Atualiza a cada 3s para ficar mais rápido
+            }, 3000); 
           }
         } catch {
           setIsAuthenticated(false);
@@ -144,9 +209,11 @@ export default function Historico() {
     return logs.filter((item) => {
       const nomeProduto = item.produto ? item.produto.toLowerCase() : "";
       const idProduto = item.id ? item.id.toString().toLowerCase() : "";
+      const uidProduto = item.uid ? item.uid.toLowerCase() : "";
       return (
         nomeProduto.includes(buscaNormalizada) ||
-        idProduto.includes(buscaNormalizada)
+        idProduto.includes(buscaNormalizada) ||
+        uidProduto.includes(buscaNormalizada)
       );
     });
   }, [logs, buscar]);
@@ -195,34 +262,42 @@ export default function Historico() {
   }, [dadosFiltrados]);
 
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<LogItem>) => {
-    const statusConfig = getStatusConfig(item.acao);
+    const status = getStatusConfig(item.acao);
     
     return (
       <View style={[styles.linha, index % 2 === 1 && styles.linhaAlt]}>
-        <Text style={[styles.celulaData, styles.colID]}>{item.id}</Text>
+        {/* Coluna 1: UID Real (ou ---) */}
+        <Text style={[styles.celulaData, styles.colID]} numberOfLines={1}>
+           {item.uid}
+        </Text>
+
+        {/* Coluna 2: Produto */}
         <Text style={[styles.celulaData, styles.colProduto]} numberOfLines={1}>
           {item.produto}
         </Text>
-        <Text style={[styles.celulaData, styles.colData]}>{item.data}</Text>
-        <Text style={[styles.celulaData, styles.colHora]}>{item.hora}</Text>
         
-        {/* Célula de Ação Personalizada */}
-        <View style={[styles.celulaData, styles.colAcao, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}>
-           <Ionicons 
-              name={statusConfig.icon as any} 
-              size={14} 
-              color={statusConfig.color} 
-              style={{ marginRight: 4 }}
-           />
-           <Text style={{ 
-             color: statusConfig.color, 
-             fontWeight: 'bold',
-             fontSize: 12,
-             textTransform: 'uppercase'
-           }}>
-             {statusConfig.label}
-           </Text>
+        {/* Coluna 3: Ação (Badge) */}
+        <View style={[styles.celula, styles.colAcao]}>
+            <View style={[
+                styles.badgeContainer, 
+                { backgroundColor: status.bg, borderColor: status.border }
+            ]}>
+                <Ionicons 
+                    name={status.icon as any} 
+                    size={12} 
+                    color={status.text} 
+                />
+                <Text style={[styles.badgeText, { color: status.text }]}>
+                    {status.label}
+                </Text>
+            </View>
         </View>
+
+        {/* Coluna 4: Data */}
+        <Text style={[styles.celulaData, styles.colData]}>{item.data}</Text>
+        
+        {/* Coluna 5: Hora */}
+        <Text style={[styles.celulaData, styles.colHora]}>{item.hora}</Text>
       </View>
     );
   }, []);
@@ -276,7 +351,7 @@ export default function Historico() {
           <View style={styles.containerBuscar}>
             <TextInput
               value={buscar}
-              placeholder="Buscar produtos..."
+              placeholder="Buscar produtos ou UID..."
               onChangeText={setBuscar}
               onFocus={() => setUiState((prev) => ({ ...prev, isSearchFocused: true }))}
               onBlur={() => setUiState((prev) => ({ ...prev, isSearchFocused: false }))}
@@ -310,21 +385,22 @@ export default function Historico() {
         <View style={styles.tabelaContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.tabela}>
+              {/* Cabeçalho */}
               <View style={styles.header}>
                 <Text style={[styles.celula, styles.colID, styles.headerText]}>
-                  ID
+                  UID
                 </Text>
                 <Text style={[styles.celula, styles.colProduto, styles.headerText]}>
                   Produto
+                </Text>
+                <Text style={[styles.celula, styles.colAcao, styles.headerText]}>
+                  Ação
                 </Text>
                 <Text style={[styles.celula, styles.colData, styles.headerText]}>
                   Data
                 </Text>
                 <Text style={[styles.celula, styles.colHora, styles.headerText]}>
                   Hora
-                </Text>
-                <Text style={[styles.celula, styles.colAcao, styles.headerText]}>
-                  Ação
                 </Text>
               </View>
 

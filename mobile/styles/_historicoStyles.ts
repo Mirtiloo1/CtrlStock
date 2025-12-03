@@ -28,21 +28,22 @@ export const styles = StyleSheet.create({
   },
   buscar: {
     backgroundColor: "white",
-    outlineColor: "gray",
-    outlineStyle: "solid",
+    borderWidth: 1, 
+    borderColor: "gray",
     fontFamily: "Roboto-Medium",
-    outlineWidth: 2,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingRight: 50,
     paddingVertical: 12,
+    elevation: 2,
   },
   buscarFocused: {
-    outlineColor: Colors.primary,
-    outlineWidth: 2,
+    borderColor: Colors.primary,
+    borderWidth: 2,
   },
   iconBuscar: {
     position: "absolute",
+    color: 'gray',
     right: 16,
     top: "50%",
     transform: [{ translateY: -10 }],
@@ -62,6 +63,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 10,
     height: 50,
+    elevation: 2,
   },
   textoBotao: {
     fontFamily: "Roboto-Bold",
@@ -70,13 +72,14 @@ export const styles = StyleSheet.create({
   },
   tabelaContainer: {
     gap: 15,
+    elevation: 2,
   },
   tabela: {
     backgroundColor: "white",
     borderRadius: 8,
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: '#cbd5e1',
   },
   header: {
     flexDirection: "row",
@@ -89,10 +92,11 @@ export const styles = StyleSheet.create({
   linha: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#cbd5e1",
+    alignItems: "center",
   },
   linhaAlt: {
-    backgroundColor: Colors.headerTabela,
+    backgroundColor: "white",
   },
   celula: {
     padding: 15,
@@ -105,12 +109,17 @@ export const styles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
   },
   colID: {
-    width: 60,
-    textAlign: "center",
+    width: 100,
+    textAlign: "left",
     fontFamily: "Roboto-Bold",
   },
   colProduto: {
     width: 180,
+  },
+  colAcao: {
+    width: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   colData: {
     width: 120,
@@ -120,31 +129,23 @@ export const styles = StyleSheet.create({
     width: 100,
     textAlign: "center",
   },
-  colAcao: {
-    width: 100,
-    textAlign: "center",
+  
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
   },
-  colAcaoEntrada: {
-    width: 100,
-    textAlign: "center",
-    color: Colors.primary,
-    fontFamily: "Roboto-Medium",
+  badgeText: {
+    fontSize: 12,
+    fontFamily: 'Roboto-Bold',
+    textTransform: 'uppercase',
   },
-  colAcaoSaida: {
-    width: 100,
-    textAlign: "center",
-    color: Colors.vermelho,
-    fontFamily: "Roboto-Medium",
-  },
-  totalItens: {
-    textAlign: "center",
-    fontFamily: "Roboto-Medium",
-    fontSize: 14,
-    color: Colors.primary,
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 8,
-  },
+
   deslizar: {
     alignItems: "center",
     justifyContent: "center",

@@ -29,11 +29,12 @@ export const styles = StyleSheet.create({
     outlineColor: "gray",
     outlineStyle: "solid",
     fontFamily: "Roboto-Medium",
-    outlineWidth: 2,
+    outlineWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingRight: 50,
     paddingVertical: 12,
+    elevation: 2,
   },
   buscarFocused: {
     outlineColor: Colors.primary,
@@ -44,6 +45,7 @@ export const styles = StyleSheet.create({
     right: 16,
     top: "50%",
     transform: [{ translateY: -10 }],
+    color: 'gray',
   },
   iconLimpar: {
     position: "absolute",
@@ -65,6 +67,8 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
   },
   containerTexts: {
     gap: 4,

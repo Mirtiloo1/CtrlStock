@@ -2,6 +2,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFileCsv,
   faMagnifyingGlass,
+  faArrowUp,
+  faArrowDown,
+  faPenToSquare,
+  faTrash,
+  faCheck,
+  faRightLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import { api } from "../services/api";
@@ -13,6 +19,51 @@ export default function Historico() {
 
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+
+  // Função auxiliar para configurar cores e ícones baseada no tipo (Igual ao Mobile adaptado para Web)
+  const getStatusConfig = (tipo) => {
+    const t = tipo ? tipo.toLowerCase() : "";
+
+    switch (t) {
+      case "entrada":
+        return {
+          label: "Entrada",
+          icon: faArrowUp,
+          style: "bg-green-50 text-green-700 border-green-200",
+        };
+      case "saida":
+        return {
+          label: "Saída",
+          icon: faArrowDown,
+          style: "bg-red-50 text-red-700 border-red-200",
+        };
+      case "leitura":
+      case "movimentacao":
+        return {
+          label: "Movimento",
+          icon: faRightLeft,
+          style: "bg-blue-50 text-blue-700 border-blue-200",
+        };
+      case "editado":
+        return {
+          label: "Editado",
+          icon: faPenToSquare,
+          style: "bg-amber-50 text-amber-700 border-amber-200",
+        };
+      case "excluido":
+        return {
+          label: "Excluído",
+          icon: faTrash,
+          style: "bg-gray-50 text-gray-600 border-gray-200",
+        };
+      default:
+        return {
+          label: tipo || "Outro",
+          icon: faCheck,
+          style: "bg-slate-50 text-white border-slate-200",
+        };
+    }
+  };
 
   const carregarDados = async (silencioso = false) => {
     try {
@@ -32,18 +83,14 @@ export default function Historico() {
 
       const formatados = movimentosData.map((m) => {
         const dataObj = new Date(m.timestamp);
-        const nomeProduto = m.produto_nome || "Produto Deletado";
-
-        const uidEncontrado =
-          mapaProdutos[nomeProduto.toLowerCase().trim()] ||
-          m.uid_etiqueta ||
-          m.tag_uid ||
-          "N/A";
+        const nomeProduto = m.nome || "Produto Deletado";
+        const uidProduto = m.uid_etiqueta || "N/A";
 
         return {
           id: m.id,
           produto: nomeProduto,
-          uid: uidEncontrado,
+          uid: uidProduto,
+          tipo: m.tipo,
           dataObj: dataObj,
           data: dataObj.toLocaleDateString("pt-BR"),
           hora: dataObj.toLocaleTimeString("pt-BR"),
@@ -97,9 +144,9 @@ export default function Historico() {
     }
 
     const csvContent = [
-      ["UID", "Produto", "Data", "Hora"].join(";"),
+      ["UID", "Produto", "Tipo", "Data", "Hora"].join(";"),
       ...dadosFiltrados.map((p) =>
-        [p.uid, p.produto, p.data, p.hora].join(";")
+        [p.uid, p.produto, p.tipo, p.data, p.hora].join(";")
       ),
     ].join("\n");
 
@@ -113,16 +160,16 @@ export default function Historico() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 lg:p-12 h-full flex flex-col">
+    <div className="p-4 sm:p-6 md:p-8 lg:p-12 h-full flex flex-col bg-slate-100 min-h-screen">
       <div className="flex flex-col gap-4 mb-6 sm:mb-8 flex-shrink-0">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <h1 className="text-primary text-xl sm:text-2xl font-medium uppercase">
+          <h1 className="text-primary text-xl sm:text-2xl font-bold uppercase tracking-tight">
             Histórico de Movimentações
           </h1>
 
           <button
             onClick={exportarCSV}
-            className="bg-primary text-white h-11 sm:h-12 w-full sm:w-auto px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-botao transition-all duration-150 cursor-pointer"
+            className="bg-primary text-white h-11 sm:h-12 w-full sm:w-auto px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all duration-150 cursor-pointer shadow-sm hover:shadow"
           >
             <p className="font-medium text-sm sm:text-base">Exportar</p>
             <span className="text-base sm:text-lg">
@@ -135,58 +182,62 @@ export default function Historico() {
           <div className="relative flex-1">
             <FontAwesomeIcon
               icon={faMagnifyingGlass}
-              className="absolute right-4 sm:right-5 transform -translate-y-1/2 top-1/2 text-base sm:text-lg text-zinc-600"
+              className="absolute right-4 sm:right-5 transform -translate-y-1/2 top-1/2 text-base sm:text-lg text-zinc-400"
             />
             <input
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por produto ou UID..."
-              className="w-full border-2 bg-white border-zinc-400 rounded-lg h-11 sm:h-12 p-3 sm:p-4 pr-10 sm:pr-12 focus:border-primary focus:outline-none transition-colors text-sm sm:text-base"
+              className="w-full border border-zinc-400 bg-white rounded-lg h-11 sm:h-12 p-3 sm:p-4 pr-10 sm:pr-12 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all text-sm sm:text-base shadow-sm"
             />
           </div>
 
           <div className="flex gap-2 md:w-auto">
             <div className="flex-1 md:w-40 relative">
-              <span className="absolute left-2 top-0.5 text-[10px] text-zinc-500 font-bold bg-white px-1">
+              <span className="absolute left-2 top-0.5 text-[10px] text-zinc-500 font-bold bg-white px-1 z-10">
                 De
               </span>
               <input
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
-                className="w-full border-2 bg-white border-zinc-400 rounded-lg h-11 sm:h-12 px-3 focus:border-primary focus:outline-none text-sm sm:text-base text-zinc-600"
+                className="w-full border border-zinc-400 bg-white rounded-lg h-11 sm:h-12 px-3 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-sm sm:text-base text-zinc-600 shadow-sm"
               />
             </div>
             <div className="flex-1 md:w-40 relative">
-              <span className="absolute left-2 top-0.5 text-[10px] text-zinc-500 font-bold bg-white px-1">
+              <span className="absolute left-2 top-0.5 text-[10px] text-zinc-500 font-bold bg-white px-1 z-10">
                 Até
               </span>
               <input
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="w-full border-2 bg-white border-zinc-400 rounded-lg h-11 sm:h-12 px-3 focus:border-primary focus:outline-none text-sm sm:text-base text-zinc-600"
+                className="w-full border border-zinc-400 bg-white rounded-lg h-11 sm:h-12 px-3 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-sm sm:text-base text-zinc-600 shadow-sm"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white overflow-auto rounded-lg shadow-sm max-h-[70vh] border border-slate-200">
-        <table className="w-full min-w-[640px]">
+      <div className="bg-white overflow-auto rounded-xl shadow-md border border-slate-300 max-h-[70vh]">
+        <table className="w-full min-w-[800px]">
           <thead>
-            <tr className="bg-zinc-300 sticky top-0 z-10 shadow-sm">
-              <th className="text-left py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-700 font-bold text-xs sm:text-sm uppercase tracking-wide">
+            <tr className="bg-primary sticky top-0 z-10 shadow-sm border-b border-slate-200">
+              <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 UID (Etiqueta)
               </th>
-              <th className="text-left py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-700 font-bold text-xs sm:text-sm uppercase tracking-wide">
+              <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 Produto
               </th>
-              <th className="text-left py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-700 font-bold text-xs sm:text-sm uppercase tracking-wide">
+              {/* NOVA COLUNA AÇÃO */}
+              <th className="text-center py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
+                Ação
+              </th>
+              <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 Data
               </th>
-              <th className="text-left py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-700 font-bold text-xs sm:text-sm uppercase tracking-wide">
+              <th className="text-left py-4 px-6 text-white font-bold text-xs sm:text-sm uppercase tracking-wider">
                 Hora
               </th>
             </tr>
@@ -194,44 +245,65 @@ export default function Historico() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="4" className="text-center py-8">
-                  Carregando...
+                <td colSpan="5" className="text-center py-12">
+                  <p className="text-slate-400 font-medium">Carregando...</p>
                 </td>
               </tr>
             ) : dadosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan="4" className="text-center py-8 text-gray-500">
-                  {busca || dataInicio || dataFim
-                    ? "Nenhum resultado encontrado."
-                    : "Nenhuma movimentação registrada."}
+                <td colSpan="5" className="text-center py-12 text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="font-medium text-white">
+                      {busca || dataInicio || dataFim
+                        ? "Nenhum resultado encontrado."
+                        : "Nenhuma movimentação registrada."}
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (
-              dadosFiltrados.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-t border-slate-200 hover:bg-emerald-50/50 transition-colors duration-200"
-                >
-                  <td className="py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-600 text-sm sm:text-base font-mono">
-                    {item.uid}
-                  </td>
-                  <td className="py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-800 font-medium text-sm sm:text-base">
-                    {item.produto}
-                  </td>
-                  <td className="py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-600 text-sm sm:text-base">
-                    {item.data}
-                  </td>
-                  <td className="py-3 sm:py-4 px-3 sm:px-4 md:px-6 text-slate-600 text-sm sm:text-base">
-                    {item.hora}
-                  </td>
-                </tr>
-              ))
+              dadosFiltrados.map((item) => {
+                const status = getStatusConfig(item.tipo);
+
+                return (
+                  <tr
+                    key={item.id}
+                    className="border-b border-slate-200 last:border-0 hover:bg-slate-50 transition-colors duration-200"
+                  >
+                    <td className="py-4 px-6 text-slate-500 text-sm font-mono">
+                      {item.uid}
+                    </td>
+                    <td className="py-4 px-6 text-slate-800 font-semibold text-sm sm:text-base">
+                      {item.produto}
+                    </td>
+                    
+                    {/* CÉLULA AÇÃO COM BADGE */}
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center">
+                        <span
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${status.style}`}
+                        >
+                          <FontAwesomeIcon icon={status.icon} />
+                          {status.label}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="py-4 px-6 text-white text-sm">
+                      {item.data}
+                    </td>
+                    <td className="py-4 px-6 text-white text-sm">
+                      {item.hora}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <p className="text-xs text-slate-500 mt-2 sm:hidden text-center">
+      <p className="text-xs text-slate-400 mt-2 sm:hidden text-center">
         ← Deslize para ver mais colunas →
       </p>
     </div>

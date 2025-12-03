@@ -20,7 +20,6 @@ import Navbar from "../../components/Navbar/Navbar";
 import { styles as indexStyles } from "../../styles/_IndexStyles";
 
 import { api } from "@/services/api";
-import ActivityLog from "../../components/LogsDeAtividade/ActivityLog";
 
 interface LogItemProps {
   type: "IN" | "OUT";
@@ -28,6 +27,34 @@ interface LogItemProps {
   quantity: number;
   timestamp: string;
 }
+
+const getLogStyle = (type: string) => {
+  if (type === "IN") {
+    return {
+      bg: "#ecfdf5", // green-50
+      iconColor: "#16a34a", // green-600
+      borderColor: "#bbf7d0", // green-200
+      badgeBg: "#ecfdf5",
+      badgeText: "#15803d", // green-700
+      badgeBorder: "#bbf7d0",
+      iconName: "arrow-up",
+      label: "ENTRADA",
+      prefix: "+",
+    };
+  } else {
+    return {
+      bg: "#fef2f2", // red-50
+      iconColor: "#dc2626", // red-600
+      borderColor: "#fecaca", // red-200
+      badgeBg: "#fef2f2",
+      badgeText: "#b91c1c", // red-700
+      badgeBorder: "#fecaca",
+      iconName: "arrow-down",
+      label: "SAÍDA",
+      prefix: "-",
+    };
+  }
+};
 
 interface DashboardData {
   totalEstoque: number;
@@ -258,30 +285,46 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        <View style={indexStyles.log}>
-          <View style={indexStyles.logTitle}>
-            <MaterialCommunityIcons
-              name="clipboard-clock-outline"
-              size={24}
-              color={Colors.primary}
-            />
-            <Text style={indexStyles.title}>Log de Atividades</Text>
+       <View style={indexStyles.logCard}>
+          <View style={indexStyles.logHeader}>
+            <View style={{ padding: 8, backgroundColor: '#eff6ff', borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe' }}>
+                <MaterialCommunityIcons name="clipboard-clock-outline" size={20} color={Colors.primary} />
+            </View>
+            <Text style={indexStyles.sectionTitle}>Log de Atividades</Text>
           </View>
+          
           <View style={indexStyles.hr}></View>
 
-          <View style={indexStyles.logs}>
+          <View style={indexStyles.logList}>
             {uiState.loading && data.recentLogs.length === 0 ? (
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: 20 }} />
             ) : data.recentLogs.length === 0 ? (
-              <Text
-                style={{ textAlign: "center", color: "#999", marginTop: 10 }}
-              >
-                Nenhuma atividade recente.
-              </Text>
+              <Text style={indexStyles.emptyText}>Nenhuma atividade recente.</Text>
             ) : (
-              data.recentLogs.map((log, index) => (
-                <ActivityLog key={index} {...log} />
-              ))
+              data.recentLogs.map((log, index) => {
+                const style = getLogStyle(log.type);
+                return (
+                  <View key={index} style={indexStyles.logItem}>
+                    <View style={indexStyles.logLeft}>
+                        <View style={[indexStyles.logIcon, { backgroundColor: style.bg, borderColor: style.borderColor }]}>
+                            <FontAwesome name={style.iconName as any} size={14} color={style.iconColor} />
+                        </View>
+                        
+                        <View style={indexStyles.logDetails}>
+                            <Text style={indexStyles.logProduct} numberOfLines={1}>
+                                {style.prefix} 1 {log.item}
+                            </Text>
+                            <Text style={indexStyles.logTime}>{log.timestamp}</Text>
+                        </View>
+                    </View>
+                    <View style={[indexStyles.logBadge, { backgroundColor: style.badgeBg, borderColor: style.badgeBorder }]}>
+                        <Text style={[indexStyles.logBadgeText, { color: style.badgeText }]}>
+                            {style.label}
+                        </Text>
+                    </View>
+                  </View>
+                );
+              })
             )}
           </View>
         </View>

@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { Colors } from "../constants/Colors";
 
 export const styles = StyleSheet.create({
@@ -17,6 +17,9 @@ export const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 8,
     gap: 25,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
   },
   lastSetItem: {
     flexDirection: "row",
@@ -41,7 +44,7 @@ export const styles = StyleSheet.create({
   imagem: {
     width: "100%",
     aspectRatio: 1 / 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#e5e5e8',
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -70,6 +73,9 @@ export const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 8,
     overflow: "hidden",
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
   },
   cards: {
     flexDirection: "row",
@@ -107,20 +113,86 @@ export const styles = StyleSheet.create({
     fontFamily: "Roboto-Medium",
     fontSize: 16,
   },
-  log: {
-    padding: 30,
+
+   sectionTitle: {
+    fontFamily: "Roboto-Bold",
+    fontSize: 18,
+    color: "#1e293b",
+    letterSpacing: -0.5,
+  },
+
+   // SEÇÃO: LOG DE ATIVIDADES
+  logCard: {
     backgroundColor: "white",
-    borderRadius: 8,
-    flexDirection: "column",
-    gap: 25,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
-  logTitle: {
+  logHeader: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 12,
+    marginBottom: 16,
   },
-  logs: {
-    flexDirection: "column",
+  logList: {
+    gap: 0,
+  },
+  logItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  logLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    fontFamily: "Roboto-Medium",
+    flex: 1,
+  },
+  logIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  logDetails: {
+    flex: 1,
+  },
+  logProduct: {
+    fontFamily: "Roboto-Bold",
+    fontSize: 14,
+    color: "#1e293b",
+    marginBottom: 2,
+  },
+  logTime: {
+    fontFamily: "Roboto-Regular",
+    fontSize: 11,
+    color: "black",
+  },
+  logBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  logBadgeText: {
+    fontFamily: "Roboto-Bold",
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#94a3b8",
+    marginVertical: 10,
+    fontFamily: "Roboto-Regular",
   },
 });

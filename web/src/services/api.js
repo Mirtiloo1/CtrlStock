@@ -2,7 +2,6 @@ const API_URL = "https://ctrlstock-api.onrender.com";
 
 export const api = {
   // ==================== AUTENTICAÇÃO ====================
-
   async cadastrarUsuario(nome, email, senha) {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -25,12 +24,10 @@ export const api = {
         body: JSON.stringify({ email, senha }),
       });
       const json = await response.json();
-
       if (json.success && json.token) {
         localStorage.setItem("@ctrlstock_token", json.token);
         localStorage.setItem("@ctrlstock_user", JSON.stringify(json.user));
       }
-
       return json;
     } catch (error) {
       console.error("Erro no login:", error);
@@ -53,7 +50,6 @@ export const api = {
   },
 
   // ==================== PRODUTOS ====================
-
   async getProdutos() {
     try {
       const response = await fetch(`${API_URL}/api/products`);
@@ -98,7 +94,6 @@ export const api = {
       const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "DELETE",
       });
-
       if (response.ok) {
         try {
           return await response.json();
@@ -114,7 +109,6 @@ export const api = {
   },
 
   // ==================== MOVIMENTAÇÕES ====================
-
   async getMovimentacoes() {
     try {
       const response = await fetch(`${API_URL}/api/movements`);
@@ -128,7 +122,7 @@ export const api = {
 
   async getUltimaTagLida() {
     try {
-      const response = await fetch(`${API_URL}/api/last-tag`);
+      const response = await fetch(`${API_URL}/api/last-unknown`);
       const json = await response.json();
       return json;
     } catch (error) {
