@@ -235,7 +235,6 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-
       <div className="w-full bg-white rounded-lg flex flex-col shadow-md border border-slate-300 p-6">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-slate-800">
@@ -334,7 +333,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
       <div className="w-full bg-white p-6 md:p-8 rounded-xl flex flex-col shadow-md border border-slate-300">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-green-50 rounded-lg text-primary border border-green-100">
@@ -344,7 +342,6 @@ export default function Dashboard() {
             Log de Atividades
           </h2>
         </div>
-
         <hr className="border-t border-slate-100 mb-6" />
 
         <div className="flex flex-col">
