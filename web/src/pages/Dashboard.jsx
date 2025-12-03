@@ -37,7 +37,7 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  const COLORS = ["#49975e", "#bd4545"];
+  const COLORS = ["#49975e", "#BC4242"]; //verde e vermelho
 
   const formatarDataHora = (isoString) => {
     if (!isoString) return { data: "--/--/----", hora: "--:--:--" };
@@ -150,9 +150,9 @@ export default function Dashboard() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-slate-200 shadow-md rounded text-xs">
-          <p className="font-bold text-slate-700">{label}</p>
-          <p className="text-primary">{`Qtd: ${payload[0].value}`}</p>
+        <div className="bg-white p-3 border border-slate-300 shadow-lg rounded-lg text-xs">
+          <p className="font-bold text-slate-800 mb-1">{label}</p>
+          <p className="text-primary font-semibold">{`Qtd: ${payload[0].value}`}</p>
         </div>
       );
     }
@@ -160,11 +160,16 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="p-4 px-6 sm:px-8 md:px-10 lg:px-12 h-full flex flex-col gap-8 bg-slate-50 min-h-screen">
+    <main className="p-4 px-6 sm:px-8 md:px-10 lg:px-12 h-full flex flex-col gap-8 bg-slate-100 min-h-screen">
       <div className="flex flex-col xl:flex-row gap-6 lg:gap-8 items-stretch">
-        <div className="w-full xl:w-[65%] bg-white p-6 md:p-8 rounded-lg flex flex-col shadow-sm border border-slate-200">
+        <div className="w-full xl:w-[65%] bg-white p-6 md:p-8 rounded-lg flex flex-col shadow-md border border-slate-300">
           <div className="flex items-center gap-3 mb-6">
-            <FontAwesomeIcon icon={faQrcode} className="text-primary text-xl" />
+            <div className="p-2 bg-green-50 rounded-lg">
+              <FontAwesomeIcon
+                icon={faQrcode}
+                className="text-primary text-xl"
+              />
+            </div>
             <h2 className="text-lg md:text-xl lg:text-2xl text-primary font-bold tracking-tight">
               Último Item Escaneado
             </h2>
@@ -173,7 +178,7 @@ export default function Dashboard() {
           <hr className="border-t-2 border-gray-200 mb-8" />
 
           <div className="flex flex-col sm:flex-row gap-6 md:gap-8 items-center sm:items-start flex-1">
-            <div className="group relative bg-gradient-to-br from-zinc-200 to-zinc-300 border-2 border-zinc-400 rounded-xl border-dashed flex items-center justify-center aspect-square w-40 sm:w-44 md:w-52 lg:w-60 flex-shrink-0 transition-all duration-300 hover:shadow-lg hover:border-primary/50">
+            <div className="group relative bg-gradient-to-br from-zinc-100 to-zinc-200 border-2 border-zinc-400 rounded-xl border-dashed flex items-center justify-center aspect-square w-40 sm:w-44 md:w-52 lg:w-60 flex-shrink-0 transition-all duration-300 hover:shadow-lg hover:border-primary/50">
               <FontAwesomeIcon
                 icon={faCamera}
                 className="text-zinc-500 text-4xl sm:text-5xl md:text-6xl group-hover:text-zinc-600 transition-colors duration-300"
@@ -202,12 +207,11 @@ export default function Dashboard() {
                   {ultimaDataHora.data} {ultimaDataHora.hora}
                 </p>
               </div>
-
             </div>
           </div>
         </div>
 
-        <div className="w-full xl:w-[35%] bg-white rounded-lg flex flex-col shadow-sm border border-slate-200">
+        <div className="w-full xl:w-[35%] bg-white rounded-lg flex flex-col shadow-md border border-slate-300">
           <div className="rounded-t-lg p-6 sm:p-10 flex flex-col items-center justify-center gap-6 flex-1 text-center">
             <FontAwesomeIcon
               icon={faBoxOpen}
@@ -224,7 +228,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => navigate("/historico")}
-            className="flex bg-primary hover:bg-botao transition-all duration-150 w-full text-white justify-center gap-3 h-14 items-center rounded-b-lg cursor-pointer text-sm sm:text-base font-medium"
+            className="flex bg-primary hover:bg-green-700 transition-all duration-150 w-full text-white justify-center gap-3 h-14 items-center rounded-b-lg cursor-pointer text-sm sm:text-base font-medium"
           >
             Ver Histórico Completo
             <CirclePlus className="w-5 h-5" />
@@ -232,7 +236,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="w-full bg-white rounded-lg flex flex-col shadow-sm border border-slate-200 p-6">
+      <div className="w-full bg-white rounded-lg flex flex-col shadow-md border border-slate-300 p-6">
         <div className="mb-4">
           <h3 className="text-lg font-bold text-slate-800">
             Atividade Semanal
@@ -264,7 +268,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-        <div className="bg-white w-full lg:w-[40%] rounded-lg flex flex-col shadow-sm border border-slate-200 p-6 min-w-0">
+        <div className="bg-white w-full lg:w-[40%] rounded-lg flex flex-col shadow-md border border-slate-300 p-6 min-w-0">
           <div className="mb-4 flex items-center gap-2">
             <FontAwesomeIcon icon={faChartPie} className="text-primary" />
             <h3 className="text-lg font-bold text-slate-800">Distribuição</h3>
@@ -295,7 +299,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white w-full lg:w-[60%] rounded-lg flex flex-col shadow-sm border border-slate-200 p-6 min-w-0">
+        <div className="bg-white w-full lg:w-[60%] rounded-lg flex flex-col shadow-md border border-slate-300 p-6 min-w-0">
           <div className="mb-4 flex items-center gap-2">
             <FontAwesomeIcon icon={faRankingStar} className="text-primary" />
             <h3 className="text-lg font-bold text-slate-800">
@@ -331,22 +335,27 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="w-full bg-white p-8 md:p-10 rounded-lg flex flex-col shadow-sm border border-slate-200">
+      <div className="w-full bg-white p-6 md:p-8 rounded-xl flex flex-col shadow-md border border-slate-300">
         <div className="flex items-center gap-3 mb-6">
-          <ClipboardClock className="text-primary text-xl" />
-          <h2 className="text-lg md:text-xl lg:text-2xl text-primary font-bold tracking-tight">
+          <div className="p-2 bg-green-50 rounded-lg text-primary border border-green-100">
+            <ClipboardClock className="text-xl" />
+          </div>
+          <h2 className="text-lg md:text-xl lg:text-2xl text-slate-800 font-bold tracking-tight">
             Log de Atividades
           </h2>
         </div>
-        <hr className="border-t-2 border-gray-200 mb-8" />
+
+        <hr className="border-t border-slate-100 mb-6" />
 
         <div className="flex flex-col">
           {loading ? (
-            <p className="text-zinc-400 text-center py-6">Carregando...</p>
+            <p className="text-slate-400 text-center py-8">Carregando...</p>
           ) : recentLogs.length === 0 ? (
-            <p className="text-zinc-400 text-center py-6">
-              Nenhuma atividade recente hoje.
-            </p>
+            <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+              <p className="text-slate-400 font-medium">
+                Nenhuma atividade recente hoje.
+              </p>
+            </div>
           ) : (
             recentLogs.map((log) => {
               const { data, hora } = formatarDataHora(log.timestamp);
@@ -355,34 +364,41 @@ export default function Dashboard() {
               return (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between py-5 border-b border-zinc-100 last:border-0"
+                  className="flex items-center justify-between py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors rounded-lg px-3 group"
                 >
                   <div className="flex items-center">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white mr-4 shadow-sm flex-shrink-0 ${
-                        isSaida ? "bg-red-700" : "bg-primary"
+                      className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 border ${
+                        isSaida
+                          ? "bg-red-600/10 text-btnDelete border-red-200"
+                          : "bg-green-600/10 text-green-800 border-green-200"
                       }`}
                     >
                       <FontAwesomeIcon
                         icon={isSaida ? faArrowDown : faArrowUp}
-                        className="text-xl"
+                        className="text-sm"
                       />
                     </div>
+
                     <div className="flex flex-col">
-                      <p className="text-zinc-700 font-bold text-base sm:text-lg">
-                        + 1 {log.produto_nome || "Desconhecido"}
+                      <p className="text-slate-800 font-bold text-sm sm:text-base group-hover:text-black transition-colors">
+                        {isSaida ? "- " : "+ "} 1{" "}
+                        {log.produto_nome || "Desconhecido"}
                       </p>
-                      <p className="text-sm text-zinc-400 mt-1">
-                        {data} {hora}
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        {data} • {hora}
                       </p>
                     </div>
                   </div>
+
                   <span
-                    className={`text-xs font-bold px-4 py-1.5 rounded text-white tracking-wide uppercase ${
-                      isSaida ? "bg-red-700" : "bg-primary"
+                    className={`text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-md tracking-wider uppercase border ${
+                      isSaida
+                        ? "bg-red-600/10 text-btnDelete border-red-200"
+                        : "bg-green-600/10 text-green-800 border-green-200"
                     }`}
                   >
-                    {isSaida ? "SAÍDA" : "ENTRADA"}
+                    {isSaida ? "Saída" : "Entrada"}
                   </span>
                 </div>
               );

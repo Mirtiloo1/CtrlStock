@@ -22,11 +22,9 @@ export default function Footer() {
 
   return (
     <footer className="font-roboto">
-      {/* Parte superior */}
-      <div className="bg-footer-primary w-full">
+      <div className="bg-neutral-150 w-full">
         <div className="container mx-auto px-4 sm:px-6 md:px-12 lg:px-20 xl:px-24 py-8 md:py-10 lg:py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
-            {/* Coluna 1 - Brand */}
             <div className="flex flex-col gap-3 md:gap-4 items-center sm:items-start">
               <h2 className="font-poppins font-bold text-primary text-2xl md:text-3xl">
                 CtrlStock
@@ -35,7 +33,6 @@ export default function Footer() {
                 Controle de estoque
               </p>
 
-              {/* Ícones sociais */}
               <div className="flex gap-2 md:gap-3 mt-1 md:mt-2">
                 {socialLinks.map((social) => (
                   <a
@@ -53,7 +50,6 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Coluna 2 - Navegação */}
             <div className="flex flex-col gap-2 md:gap-3 items-center sm:items-start">
               <h3 className="font-bold text-primary text-lg md:text-xl mb-1">
                 Navegação
@@ -71,7 +67,6 @@ export default function Footer() {
               </nav>
             </div>
 
-            {/* Coluna 3 - Contato */}
             <div className="flex flex-col gap-2 md:gap-3 items-center sm:items-start sm:col-span-2 lg:col-span-1">
               <h3 className="font-bold text-primary text-lg md:text-xl mb-1">
                 Contato
@@ -93,8 +88,7 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Parte inferior */}
-      <div className="bg-footer-secondary w-full py-3 md:py-4 px-4">
+      <div className="bg-footer-primary w-full py-3 md:py-4 px-4">
         <div className="container mx-auto text-center">
           <p className="text-gray-600 text-xs md:text-sm font-medium mb-1">
             © 2025 CtrlStock. Todos os direitos reservados.

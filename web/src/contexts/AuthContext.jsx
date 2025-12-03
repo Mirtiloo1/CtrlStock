@@ -1,5 +1,3 @@
-// web/src/contexts/AuthContext.jsx
-
 import { createContext, useContext, useState, useEffect } from "react";
 import { api } from "../services/api";
 
@@ -50,6 +48,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// NAO APAGAR ESSE COMENTARIO DE BAIXO!!
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);

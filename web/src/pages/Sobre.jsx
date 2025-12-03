@@ -20,138 +20,148 @@ export default function Sobre() {
     {
       nome: "HTML5",
       icon: faHtml5,
-      descricao: "Estrutura das páginas web",
-      color: "text-white",
+      descricao: "Estrutura semântica",
     },
     {
       nome: "CSS3",
       icon: faCss3Alt,
-      descricao: "Estilização e layout",
-      color: "text-white",
+      descricao: "Estilização visual",
     },
     {
       nome: "JavaScript",
       icon: faSquareJs,
-      descricao: "Lógica e interatividade",
-      color: "text-white",
+      descricao: "Lógica do sistema",
     },
     {
       nome: "React",
       icon: faReact,
-      descricao: "Framework frontend",
-      color: "text-white",
+      descricao: "Interface reativa",
     },
     {
       nome: "Node.js",
       icon: faNodeJs,
-      descricao: "Backend e APIs",
-      color: "text-white",
+      descricao: "API e Backend",
     },
     {
       nome: "NFC",
       icon: faWifi,
-      descricao: "Comunicação por proximidade",
-      color: "text-white",
+      descricao: "Comunicação sem fio",
     },
     {
       nome: "ESP32",
       icon: faMicrochip,
-      descricao: "Microcontrolador IoT",
-      color: "text-white",
+      descricao: "Hardware IoT",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-center text-3xl sm:text-4xl lg:text-5xl font-poppins font-bold text-primary mb-8 sm:mb-12">
-          Projeto CtrlStock
-        </h1>
-        <div className="max-w-4xl mx-auto mb-12 sm:mb-16 lg:mb-20">
-          <div className="p-6 sm:p-8 lg:p-10">
-            <p className="text-gray-700 font-roboto text-base sm:text-lg leading-relaxed text-justify">
-              O presente projeto tem como finalidade o desenvolvimento de um
-              protótipo de Sistema de Controle de Estoque por Aproximação,
-              utilizando a tecnologia de comunicação por campo de proximidade
-              (NFC) para monitorar e registrar a movimentação de produtos. A
-              proposta busca demonstrar, de forma simplificada e de baixo custo,
-              a lógica e a viabilidade de sistemas de inventário automatizado.
-            </p>
+    <div className="min-h-screen bg-slate-100 py-12 px-4 sm:px-6 lg:px-8 font-roboto">
+      <div className="max-w-7xl mx-auto space-y-12">
+        <div className="text-center max-w-4xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-poppins font-bold text-slate-900 mb-6 tracking-tight">
+            Projeto <span className="text-primary">CtrlStock</span>
+          </h1>
+          <p className="text-slate-600 text-lg sm:text-xl leading-relaxed">
+            Um protótipo de Sistema de Controle de Estoque por Aproximação
+            (NFC), demonstrando viabilidade técnica e automação de baixo custo
+            para gestão de inventário.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-px bg-slate-300 flex-1"></div>
+            <h2 className="font-poppins font-bold text-slate-800 text-center uppercase tracking-wider text-sm">
+              Tecnologias Utilizadas
+            </h2>
+            <div className="h-px bg-slate-300 flex-1"></div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tecnologias.map((tech, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-r-xl rounded-l-md p-6 border border-slate-200 border-l-4 border-l-primary shadow-sm hover:shadow-md hover:bg-green-50 hover:border-green-200 transition-all duration-300 group flex flex-col items-center text-center relative overflow-hidden"
+              >
+                <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4 group-hover:bg-white group-hover:scale-105 transition-all duration-300 border border-slate-100 group-hover:border-green-100">
+                  <FontAwesomeIcon
+                    icon={tech.icon}
+                    className="text-3xl text-primary"
+                  />
+                </div>
+
+                <h3 className="text-slate-800 font-bold text-xl mb-2 group-hover:text-emerald-800 transition-colors">
+                  {tech.nome}
+                </h3>
+
+                <p className="text-slate-500 text-sm font-medium group-hover:text-emerald-700/80">
+                  {tech.descricao}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
-        <h2 className="text-center text-2xl sm:text-3xl lg:text-4xl font-poppins font-bold text-primary mb-8 sm:mb-12">
-          Tecnologias Utilizadas
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
-          {tecnologias.map((tech, index) => (
-            <div
-              key={index}
-              className="bg-primary rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center group"
-            >
-              <div
-                className={`mb-4 sm:mb-6 ${tech.color} transition-transform duration-300`}
-              >
-                <FontAwesomeIcon
-                  icon={tech.icon}
-                  className="text-6xl sm:text-7xl lg:text-8xl"
-                />
+        <div className="bg-white rounded-2xl p-8 md:p-12 border border-slate-200 shadow-md">
+          <h3 className="text-2xl sm:text-3xl font-poppins text-slate-900 font-bold mb-8 text-center">
+            Objetivos do Sistema
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex gap-4 items-start p-4 rounded-lg hover:bg-slate-50 transition-colors">
+              <div className="flex-shrink-0 w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-primary border border-green-100">
+                <FontAwesomeIcon icon={faBoxes} className="text-xl" />
               </div>
-
-              <h3 className="text-white font-poppins font-bold text-xl sm:text-2xl mb-2">
-                {tech.nome}
-              </h3>
-
-              <p className="text-white font-roboto text-sm sm:text-base">
-                {tech.descricao}
-              </p>
+              <div>
+                <h4 className="font-bold text-slate-800 text-lg">
+                  Controle de Estoque
+                </h4>
+                <p className="text-slate-500 mt-1 text-sm leading-relaxed">
+                  Monitoramento em tempo real da entrada e saída de produtos,
+                  garantindo precisão nos dados.
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
 
-        <div className="mt-12 sm:mt-16 lg:mt-20 max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg p-6 sm:p-8 lg:p-10">
-            <h3 className="text-2xl sm:text-3xl font-poppins text-primary font-bold mb-6 sm:mb-8 text-center">
-              Objetivo do Sistema
-            </h3>
-            <div className="space-y-5 font-roboto text-sm sm:text-base">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faBoxes} className="text-xl text-primary" />
-                </div>
-                <p>
-                  <strong className="text-primary">Controle de Estoque:</strong> Monitoramento em tempo
-                  real da movimentação de produtos
+            <div className="flex gap-4 items-start p-4 rounded-lg hover:bg-slate-50 transition-colors">
+              <div className="flex-shrink-0 w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-primary border border-green-100">
+                <FontAwesomeIcon icon={faMobileAlt} className="text-xl" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-lg">
+                  Tecnologia NFC
+                </h4>
+                <p className="text-slate-500 mt-1 text-sm leading-relaxed">
+                  Identificação rápida, segura e sem contato através de tags e
+                  leitores de proximidade.
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faMobileAlt} className="text-xl text-primary" />
-                </div>
-                <p>
-                  <strong className="text-primary">Tecnologia NFC:</strong> Identificação rápida e segura
-                  através de tags NFC
+            <div className="flex gap-4 items-start p-4 rounded-lg hover:bg-slate-50 transition-colors">
+              <div className="flex-shrink-0 w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-primary border border-green-100">
+                <FontAwesomeIcon icon={faDollarSign} className="text-xl" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-lg">
+                  Baixo Custo
+                </h4>
+                <p className="text-slate-500 mt-1 text-sm leading-relaxed">
+                  Utilização de componentes acessíveis como ESP32, tornando
+                  viável para pequenas empresas.
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faDollarSign} className="text-xl text-primary" />
-                </div>
-                <p>
-                  <strong className="text-primary">Baixo Custo:</strong> Solução acessível para pequenas
-                  e médias empresas
-                </p>
+            <div className="flex gap-4 items-start p-4 rounded-lg hover:bg-slate-50 transition-colors">
+              <div className="flex-shrink-0 w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-primary border border-green-100">
+                <FontAwesomeIcon icon={faBolt} className="text-xl" />
               </div>
-
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faBolt} className="text-xl text-primary" />
-                </div>
-                <p>
-                  <strong className="text-primary">Automação:</strong> Redução de erros humanos e
-                  agilidade nos processos
+              <div>
+                <h4 className="font-bold text-slate-800 text-lg">Automação</h4>
+                <p className="text-slate-500 mt-1 text-sm leading-relaxed">
+                  Redução drástica de erros humanos manuais e agilidade nos
+                  processos de conferência.
                 </p>
               </div>
             </div>
