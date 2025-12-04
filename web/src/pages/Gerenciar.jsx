@@ -199,7 +199,7 @@ export default function Gerenciar() {
 
   if (!isAuthenticated) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-fade-in bg-slate-100">
         <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6 shadow-sm">
           <FontAwesomeIcon icon={faLock} className="text-4xl text-zinc-400" />
         </div>
@@ -221,7 +221,7 @@ export default function Gerenciar() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 lg:p-12 h-full flex flex-col">
+    <div className="p-4 sm:p-6 md:p-8 bg-slate-100 lg:p-12 h-full flex flex-col">
       <div className="flex flex-col gap-4 mb-6 sm:mb-8 lg:mb-10 flex-shrink-0">
         <h1 className="text-primary text-xl sm:text-2xl font-semibold uppercase tracking-wide">
           Gerenciamento de Produtos
