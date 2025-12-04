@@ -20,7 +20,6 @@ export default function Historico() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
-  // Função auxiliar para configurar cores e ícones baseada no tipo
   const getStatusConfig = (tipo) => {
     const t = tipo ? tipo.toLowerCase() : "";
 
@@ -263,8 +262,6 @@ export default function Historico() {
                     <td className="py-4 px-6 text-slate-800 font-semibold text-sm sm:text-base">
                       {item.produto}
                     </td>
-
-                    {/* CÉLULA AÇÃO COM BADGE */}
                     <td className="py-4 px-6">
                       <div className="flex justify-center">
                         <span

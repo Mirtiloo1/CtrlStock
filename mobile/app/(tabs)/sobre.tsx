@@ -11,7 +11,6 @@ import {
 } from "@expo/vector-icons";
 import { styles } from "../../styles/_sobreStyles";
 
-// Dados das Tecnologias
 const techData = [
   {
     key: "react",
@@ -54,7 +53,6 @@ export default function Sobre() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Cabeçalho */}
         <View style={styles.headerSection}>
           <Text style={styles.mainTitle}>
             Projeto <Text style={styles.titleHighlight}>CtrlStock</Text>
@@ -66,14 +64,12 @@ export default function Sobre() {
           </Text>
         </View>
 
-        {/* 2. Divisor Tecnologias */}
         <View style={styles.dividerSection}>
           <View style={styles.line} />
           <Text style={styles.sectionTitle}>Tecnologias Utilizadas</Text>
           <View style={styles.line} />
         </View>
 
-        {/* 3. Grid de Cards Tech */}
         <View style={styles.techGrid}>
           {techData.map((item) => (
             <View key={item.key} style={styles.techCard}>
@@ -84,7 +80,6 @@ export default function Sobre() {
           ))}
         </View>
 
-        {/* 4. Objetivos do Sistema */}
         <View style={styles.objectivesCard}>
           <Text style={styles.objectivesTitle}>Objetivos do Sistema</Text>
 

@@ -1,13 +1,13 @@
+import { useAuth } from "../../hooks/useAuth";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   Alert,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "./_NavbarStyles";
@@ -15,26 +15,24 @@ import { styles } from "./_NavbarStyles";
 export default function Navbar() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { width } = useWindowDimensions();
 
+  const { isAuthenticated, signOut } = useAuth();
+
+  const { width } = useWindowDimensions();
   const isSmallDevice = width < 380;
 
-  useFocusEffect(
-    useCallback(() => {
-      const checkLoginStatus = async () => {
-        try {
-          const token = await AsyncStorage.getItem("@ctrlstock_token");
-          setIsLoggedIn(!!token);
-        } catch (error) {
-          console.log("Erro ao verificar token:", error);
-        }
-      };
-      checkLoginStatus();
-    }, [])
-  );
-
   const handleLogout = async () => {
+    if (Platform.OS === "web") {
+      if (confirm("Deseja desconectar da sua conta?")) {
+        try {
+          await signOut();
+        } catch (error) {
+          console.log("Erro ao sair:", error);
+        }
+      }
+      return;
+    }
+
     Alert.alert("Sair", "Deseja desconectar da sua conta?", [
       { text: "Cancelar", style: "cancel" },
       {
@@ -42,10 +40,7 @@ export default function Navbar() {
         style: "destructive",
         onPress: async () => {
           try {
-            await AsyncStorage.removeItem("@ctrlstock_token");
-            await AsyncStorage.removeItem("@ctrlstock_user");
-            setIsLoggedIn(false);
-            router.replace("/(tabs)/login");
+            await signOut();
           } catch (error) {
             console.log("Erro ao sair:", error);
           }
@@ -70,19 +65,19 @@ export default function Navbar() {
             <Text
               style={[styles.statusText, isSmallDevice && { fontSize: 12 }]}
             >
-              {isLoggedIn ? "Conectado" : "Desconectado"}
+              {isAuthenticated ? "Conectado" : "Desconectado"}
             </Text>
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: isLoggedIn ? "#4CAF50" : "#ccc" },
+                { backgroundColor: isAuthenticated ? "#4CAF50" : "#ccc" },
                 isSmallDevice && { width: 7, height: 7 },
               ]}
             />
           </View>
         </View>
 
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <TouchableOpacity
             style={[
               styles.btnSair,
@@ -93,7 +88,7 @@ export default function Navbar() {
           >
             <FontAwesome6
               name="arrow-right-from-bracket"
-              size={isSmallDevice ? 18 : 21}
+              size={isSmallDevice ?20 : 24}
               color="white"
             />
           </TouchableOpacity>
@@ -103,7 +98,7 @@ export default function Navbar() {
               styles.btnLogin,
               isSmallDevice && { padding: 8, minWidth: 40, minHeight: 40 },
             ]}
-            onPress={() => router.push("/(tabs)/login")}
+            onPress={() => router.push("/(auth)/login")}
             activeOpacity={0.75}
           >
             <FontAwesome6

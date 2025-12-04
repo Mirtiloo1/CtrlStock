@@ -238,7 +238,7 @@ export default function Gerenciar() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar produtos..."
-              className="w-full border-2 bg-white border-zinc-400 rounded-lg h-11 sm:h-12 pl-10 pr-4 focus:border-primary focus:outline-none transition-colors text-sm sm:text-base"
+              className="w-full border bg-white border-zinc-400 rounded-lg h-11 sm:h-12 pl-10 pr-4 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all text-sm sm:text-base shadow-sm"
             />
           </div>
 
@@ -250,7 +250,7 @@ export default function Gerenciar() {
             <select
               value={ordenacao}
               onChange={(e) => setOrdenacao(e.target.value)}
-              className="w-full border-2 bg-white border-zinc-400 rounded-lg h-11 sm:h-12 pl-10 pr-8 appearance-none focus:border-primary focus:outline-none cursor-pointer text-sm sm:text-base text-zinc-700"
+              className="w-full border bg-white border-zinc-400 rounded-lg h-11 sm:h-12 pl-10 pr-8 appearance-none focus:border-primary focus:ring-1 focus:outline-none transition-all cursor-pointer text-sm sm:text-base text-zinc-700"
             >
               <option value="az">Nome (A-Z)</option>
               <option value="za">Nome (Z-A)</option>

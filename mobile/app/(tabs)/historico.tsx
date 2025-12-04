@@ -3,7 +3,6 @@ import { api } from "@/services/api";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File, Paths } from "expo-file-system";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -21,62 +20,66 @@ import {
   View,
 } from "react-native";
 import { styles } from "../../styles/_historicoStyles";
+import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/hooks/useAuth";
 
-// Configuração de Cores para os Badges
+const STATUS_CONFIG = {
+  entrada: {
+    bg: "#ecfdf5",
+    text: "#15803d",
+    border: "#bbf7d0",
+    label: "Entrada",
+    icon: "arrow-up-circle",
+  },
+  saida: {
+    bg: "#fef2f2",
+    text: "#b91c1c",
+    border: "#fecaca",
+    label: "Saída",
+    icon: "arrow-down-circle",
+  },
+  leitura: {
+    bg: "#eff6ff",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+    label: "Movimento",
+    icon: "swap-horizontal",
+  },
+  movimentacao: {
+    bg: "#eff6ff",
+    text: "#1d4ed8",
+    border: "#bfdbfe",
+    label: "Movimento",
+    icon: "swap-horizontal",
+  },
+  editado: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    border: "#fde68a",
+    label: "Editado",
+    icon: "create",
+  },
+  excluido: {
+    bg: "#f9fafb",
+    text: "#374151",
+    border: "#e5e7eb",
+    label: "Excluído",
+    icon: "trash",
+  },
+  default: {
+    bg: "#f8fafc",
+    text: "#64748b",
+    border: "#e2e8f0",
+    label: "Outro",
+    icon: "help-circle",
+  },
+} as const;
+
 const getStatusConfig = (tipo: string) => {
-  const t = tipo ? tipo.toLowerCase() : "";
-
-  switch (t) {
-    case "entrada":
-      return {
-        bg: "#ecfdf5",
-        text: "#15803d",
-        border: "#bbf7d0",
-        label: "Entrada",
-        icon: "arrow-up-circle",
-      };
-    case "saida":
-      return {
-        bg: "#fef2f2",
-        text: "#b91c1c",
-        border: "#fecaca",
-        label: "Saída",
-        icon: "arrow-down-circle",
-      };
-    case "leitura":
-    case "movimentacao":
-      return {
-        bg: "#eff6ff",
-        text: "#1d4ed8",
-        border: "#bfdbfe",
-        label: "Movimento",
-        icon: "swap-horizontal",
-      };
-    case "editado":
-      return {
-        bg: "#fffbeb",
-        text: "#b45309",
-        border: "#fde68a",
-        label: "Editado",
-        icon: "create",
-      };
-    case "excluido":
-      return {
-        bg: "#f9fafb",
-        text: "#374151",
-        border: "#e5e7eb",
-        label: "Excluído",
-        icon: "trash",
-      };
-    default:
-      return {
-        bg: "#f8fafc",
-        text: "#64748b",
-        border: "#e2e8f0",
-        label: tipo || "Outro",
-        icon: "help-circle",
-      };
-  }
+  const key = (tipo || "").toLowerCase();
+  return (
+    STATUS_CONFIG[key as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.default
+  );
 };
 
 interface LogItem {
@@ -87,9 +90,78 @@ interface LogItem {
   acao: string;
 }
 
+const formatarDataHora = (isoString: string) => {
+  if (!isoString) return { data: "--/--/--", hora: "--:--" };
+  const dataObj = new Date(isoString);
+  return {
+    data: dataObj.toLocaleDateString("pt-BR"),
+    hora: dataObj.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+};
+
+const LoadingScreen = () => (
+  <View
+    style={[
+      styles.container,
+      { justifyContent: "center", alignItems: "center" },
+    ]}
+  >
+    <ActivityIndicator size="large" color={Colors.primary} />
+  </View>
+);
+
+const AuthRequiredScreen = ({ onLogin }: { onLogin: () => void }) => (
+  <View style={styles.container}>
+    <Navbar />
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+      }}
+    >
+      <FontAwesome6
+        name="lock"
+        size={60}
+        color="#999"
+        style={{ marginBottom: 20 }}
+      />
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          color: "#555",
+          marginBottom: 10,
+        }}
+      >
+        Acesso Restrito
+      </Text>
+      <Text style={{ color: "#777", textAlign: "center", marginBottom: 20 }}>
+        Você precisa estar logado para acessar esta tela.
+      </Text>
+      <TouchableOpacity
+        style={{
+          backgroundColor: Colors.primary,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderRadius: 8,
+        }}
+        onPress={onLogin}
+        activeOpacity={0.9}
+      >
+        <Text style={{ color: "white", fontWeight: "bold" }}>Fazer Login</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
 export default function Historico() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { isAuthenticated } = useAuth();
   const [logs, setLogs] = useState<LogItem[]>([]);
 
   const [uiState, setUiState] = useState({
@@ -100,96 +172,56 @@ export default function Historico() {
 
   const [buscar, setBuscar] = useState("");
 
-  const formatarDataHora = (isoString: string) => {
-    if (!isoString) return { data: "--/--/--", hora: "--:--" };
-    const dataObj = new Date(isoString);
-    return {
-      data: dataObj.toLocaleDateString("pt-BR"),
-      hora: dataObj.toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-  };
-
   const carregarDados = useCallback(async (silencioso = false) => {
-    if (!silencioso) {
-      setUiState((prev) => ({ ...prev, loading: true }));
-    }
+    if (!silencioso) setUiState((p) => ({ ...p, loading: true }));
 
     try {
       const movimentosData = await api.getMovimentacoes();
 
-      const dadosFormatados: LogItem[] = movimentosData.map((item: any) => {
-        const { data, hora } = formatarDataHora(item.timestamp);
-        const nomeProduto = item.nome || "Produto Deletado";
-
-        return {
-          id: item.id.toString(),
-          produto: nomeProduto,
-          data: data,
-          hora: hora,
-          acao: item.tipo,
-        };
-      });
-
-      // Ordenar por ID decrescente (mais recente primeiro)
-      dadosFormatados.sort((a, b) => Number(b.id) - Number(a.id));
+      const dadosFormatados: LogItem[] = movimentosData
+        .map((item: any) => {
+          const { data, hora } = formatarDataHora(item.timestamp);
+          return {
+            id: item.id.toString(),
+            produto: item.nome || "Produto Deletado",
+            data,
+            hora,
+            acao: item.tipo,
+          };
+        })
+        .sort((a: LogItem, b: LogItem) => Number(b.id) - Number(a.id));
 
       setLogs(dadosFormatados);
     } catch (error) {
       console.error("Erro ao processar dados:", error);
     } finally {
-      setUiState((prev) => ({ ...prev, loading: false, refreshing: false }));
+      setUiState((p) => ({ ...p, loading: false, refreshing: false }));
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      let intervalPolling: any;
+      if (!isAuthenticated) return;
 
-      const checkAuthAndInit = async () => {
-        try {
-          const token = await AsyncStorage.getItem("@ctrlstock_token");
-          if (!token) {
-            setIsAuthenticated(false);
-          } else {
-            setIsAuthenticated(true);
-            await carregarDados(false);
-
-            intervalPolling = setInterval(() => {
-              carregarDados(true);
-            }, 3000);
-          }
-        } catch {
-          setIsAuthenticated(false);
-        }
-      };
-
-      checkAuthAndInit();
-
-      return () => {
-        if (intervalPolling) clearInterval(intervalPolling);
-      };
-    }, [carregarDados])
+      carregarDados(false);
+      const interval = setInterval(() => carregarDados(true), 3000);
+      return () => clearInterval(interval);
+    }, [isAuthenticated, carregarDados])
   );
 
   const handleRefresh = useCallback(() => {
-    setUiState((prev) => ({ ...prev, refreshing: true }));
+    setUiState((p) => ({ ...p, refreshing: true }));
     carregarDados(true);
   }, [carregarDados]);
 
   const dadosFiltrados = useMemo(() => {
-    const buscaNormalizada = buscar.toLowerCase().trim();
-    if (buscaNormalizada === "") return logs;
+    const termo = buscar.toLowerCase().trim();
+    if (!termo) return logs;
 
     return logs.filter((item) => {
-      const nomeProduto = item.produto ? item.produto.toLowerCase() : "";
-      const idMovimento = item.id ? item.id.toString().toLowerCase() : "";
-      return (
-        nomeProduto.includes(buscaNormalizada) ||
-        idMovimento.includes(buscaNormalizada)
-      );
+      const nomeProduto = item.produto?.toLowerCase() || "";
+      const idMovimento = item.id?.toLowerCase() || "";
+      return nomeProduto.includes(termo) || idMovimento.includes(termo);
     });
   }, [logs, buscar]);
 
@@ -198,12 +230,13 @@ export default function Historico() {
       Alert.alert("Erro", "Compartilhamento não suportado neste dispositivo.");
       return;
     }
-    try {
-      if (dadosFiltrados.length === 0) {
-        Alert.alert("Atenção", "Nenhum dado para exportar.");
-        return;
-      }
 
+    if (dadosFiltrados.length === 0) {
+      Alert.alert("Atenção", "Nenhum dado para exportar.");
+      return;
+    }
+
+    try {
       const cabecalho = "ID;Produto;Data;Hora;Acao\n";
       const linhas = dadosFiltrados
         .map((item) => {
@@ -240,20 +273,15 @@ export default function Historico() {
 
       return (
         <View style={[styles.linha, index % 2 === 1 && styles.linhaAlt]}>
-          {/* Coluna 1: ID da Movimentação */}
           <Text style={[styles.celulaData, styles.colID]} numberOfLines={1}>
             {item.id}
           </Text>
-
-          {/* Coluna 2: Produto */}
           <Text
             style={[styles.celulaData, styles.colProduto]}
             numberOfLines={1}
           >
             {item.produto}
           </Text>
-
-          {/* Coluna 3: Ação (Badge) */}
           <View style={[styles.celula, styles.colAcao]}>
             <View
               style={[
@@ -271,11 +299,7 @@ export default function Historico() {
               </Text>
             </View>
           </View>
-
-          {/* Coluna 4: Data */}
           <Text style={[styles.celulaData, styles.colData]}>{item.data}</Text>
-
-          {/* Coluna 5: Hora */}
           <Text style={[styles.celulaData, styles.colHora]}>{item.hora}</Text>
         </View>
       );
@@ -284,67 +308,12 @@ export default function Historico() {
   );
 
   if (isAuthenticated === null || (uiState.loading && logs.length === 0)) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
-  if (isAuthenticated === false) {
+  if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <Navbar />
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20,
-          }}
-        >
-          <FontAwesome6
-            name="lock"
-            size={60}
-            color="#999"
-            style={{ marginBottom: 20 }}
-          />
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              color: "#555",
-              marginBottom: 10,
-            }}
-          >
-            Acesso Restrito
-          </Text>
-          <Text
-            style={{ color: "#777", textAlign: "center", marginBottom: 20 }}
-          >
-            Você precisa estar logado para acessar esta tela.
-          </Text>
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#000",
-              paddingHorizontal: 20,
-              paddingVertical: 12,
-              borderRadius: 8,
-            }}
-            onPress={() => router.replace("/(tabs)/login")}
-            activeOpacity={0.9}
-          >
-            <Text style={{ color: "white", fontWeight: "bold" }}>
-              Fazer Login
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthRequiredScreen onLogin={() => router.replace("/(auth)/login")} />
     );
   }
 
@@ -371,10 +340,10 @@ export default function Historico() {
               placeholder="Buscar por produto ou ID..."
               onChangeText={setBuscar}
               onFocus={() =>
-                setUiState((prev) => ({ ...prev, isSearchFocused: true }))
+                setUiState((p) => ({ ...p, isSearchFocused: true }))
               }
               onBlur={() =>
-                setUiState((prev) => ({ ...prev, isSearchFocused: false }))
+                setUiState((p) => ({ ...p, isSearchFocused: false }))
               }
               style={[
                 styles.buscar,
@@ -412,7 +381,6 @@ export default function Historico() {
         <View style={styles.tabelaContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.tabela}>
-              {/* Cabeçalho */}
               <View style={styles.header}>
                 <Text style={[styles.celula, styles.colID, styles.headerText]}>
                   ID

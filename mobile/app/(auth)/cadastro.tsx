@@ -45,7 +45,7 @@ export default function Cadastro() {
     setLoading(false);
     if (resultado.success) {
       Alert.alert("Sucesso", "Conta criada! Faça login para continuar.", [
-        { text: "OK", onPress: () => router.replace("/(tabs)/login") },
+        { text: "OK", onPress: () => router.replace("/(auth)/login") },
       ]);
     } else {
       Alert.alert("Erro", resultado.message || "Falha ao cadastrar.");

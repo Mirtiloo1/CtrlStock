@@ -81,20 +81,6 @@ const TabLayout = () => {
             ),
           }}
         />
-        <Tabs.Screen
-          name="login"
-          options={{
-            href: null,
-            title: "Login",
-          }}
-        />
-        <Tabs.Screen
-          name="cadastro"
-          options={{
-            href: null,
-            title: "Cadastro",
-          }}
-        />
       </Tabs>
     </SafeAreaView>
   );

@@ -3,7 +3,6 @@ import { api } from "@/services/api";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -20,6 +19,8 @@ import {
   View,
 } from "react-native";
 import { styles } from "../../styles/_gerenciarStyles";
+import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Produto {
   id: number;
@@ -34,15 +35,68 @@ interface FormState {
   descricao: string;
 }
 
-const INITIAL_FORM_STATE: FormState = {
-  nome: "",
-  uid: "",
-  descricao: "",
-};
+const INITIAL_FORM: FormState = { nome: "", uid: "", descricao: "" };
+
+const LoadingScreen = () => (
+  <View
+    style={[
+      styles.container,
+      { justifyContent: "center", alignItems: "center" },
+    ]}
+  >
+    <ActivityIndicator size="large" color={Colors.primary} />
+  </View>
+);
+
+const AuthRequiredScreen = ({ onLogin }: { onLogin: () => void }) => (
+  <View style={styles.container}>
+    <Navbar />
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+      }}
+    >
+      <FontAwesome6
+        name="lock"
+        size={60}
+        color="#999"
+        style={{ marginBottom: 20 }}
+      />
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          color: "#555",
+          marginBottom: 10,
+        }}
+      >
+        Acesso Restrito
+      </Text>
+      <Text style={{ color: "#777", textAlign: "center", marginBottom: 20 }}>
+        Você precisa estar logado para acessar esta tela.
+      </Text>
+      <TouchableOpacity
+        style={{
+          backgroundColor: Colors.primary,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderRadius: 8,
+        }}
+        onPress={onLogin}
+        activeOpacity={0.9}
+      >
+        <Text style={{ color: "white", fontWeight: "bold" }}>Fazer Login</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
 
 export default function Gerenciar() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { isAuthenticated } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
 
   const [uiState, setUiState] = useState({
@@ -54,16 +108,13 @@ export default function Gerenciar() {
     isSearchFocused: false,
   });
 
-  const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+  const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [produtoEmEdicao, setProdutoEmEdicao] = useState<Produto | null>(null);
   const [buscar, setBuscar] = useState("");
-
   const intervalScanRef = useRef<any>(null);
 
   const carregarProdutos = useCallback(async (silencioso = false) => {
-    if (!silencioso) {
-      setUiState((prev) => ({ ...prev, loading: true }));
-    }
+    if (!silencioso) setUiState((p) => ({ ...p, loading: true }));
 
     try {
       const dados = await api.getProdutos();
@@ -71,102 +122,79 @@ export default function Gerenciar() {
     } catch (error) {
       console.error(error);
     } finally {
-      setUiState((prev) => ({ ...prev, loading: false, refreshing: false }));
+      setUiState((p) => ({ ...p, loading: false, refreshing: false }));
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      let intervalPolling: any;
+      if (!isAuthenticated) return;
 
-      const checkAuthAndInit = async () => {
-        try {
-          const token = await AsyncStorage.getItem("@ctrlstock_token");
-          if (!token) {
-            setIsAuthenticated(false);
-          } else {
-            setIsAuthenticated(true);
-            await carregarProdutos(false);
-
-            intervalPolling = setInterval(() => {
-              carregarProdutos(true);
-            }, 5000);
-          }
-        } catch {
-          setIsAuthenticated(false);
-        }
-      };
-
-      checkAuthAndInit();
-
-      return () => {
-        if (intervalPolling) clearInterval(intervalPolling);
-      };
-    }, [carregarProdutos])
+      carregarProdutos(false);
+      const interval = setInterval(() => carregarProdutos(true), 5000);
+      return () => clearInterval(interval);
+    }, [isAuthenticated, carregarProdutos])
   );
 
   const handleRefresh = useCallback(() => {
-    setUiState((prev) => ({ ...prev, refreshing: true }));
+    setUiState((p) => ({ ...p, refreshing: true }));
     carregarProdutos(true);
   }, [carregarProdutos]);
 
-  const iniciarEscutaTag = () => {
-    setUiState((prev) => ({ ...prev, scanModalVisible: true }));
+  const iniciarEscutaTag = useCallback(() => {
+    setUiState((p) => ({ ...p, scanModalVisible: true }));
     if (intervalScanRef.current) clearInterval(intervalScanRef.current);
 
     intervalScanRef.current = setInterval(async () => {
       const dadosBuffer = await api.getUltimaTagLida();
-
-      if (dadosBuffer && dadosBuffer.uid) {
-        const tagLida = dadosBuffer.uid;
-
+      if (dadosBuffer?.uid) {
         setForm((prev) => {
-          if (prev.uid !== tagLida) {
+          if (prev.uid !== dadosBuffer.uid) {
             if (Platform.OS !== "web") Vibration.vibrate(100);
             pararEscutaTag();
-            return { ...prev, uid: tagLida };
+            return { ...prev, uid: dadosBuffer.uid };
           }
           return prev;
         });
       }
     }, 1000);
-  };
+  }, []);
 
-  const pararEscutaTag = () => {
+  const pararEscutaTag = useCallback(() => {
     if (intervalScanRef.current) {
       clearInterval(intervalScanRef.current);
       intervalScanRef.current = null;
     }
-    setUiState((prev) => ({ ...prev, scanModalVisible: false }));
-  };
+    setUiState((p) => ({ ...p, scanModalVisible: false }));
+  }, []);
 
-  const resetForm = () => {
-    setForm(INITIAL_FORM_STATE);
+  const resetForm = useCallback(() => {
+    setForm(INITIAL_FORM);
     setProdutoEmEdicao(null);
-  };
+  }, []);
 
-  const abrirModalCadastro = () => {
+  const abrirModalCadastro = useCallback(() => {
     resetForm();
-    setUiState((prev) => ({ ...prev, modalVisible: true }));
-  };
+    setUiState((p) => ({ ...p, modalVisible: true }));
+  }, [resetForm]);
 
-  const abrirModalEdicao = (produto: Produto) => {
+  const abrirModalEdicao = useCallback((produto: Produto) => {
     setProdutoEmEdicao(produto);
     setForm({
       nome: produto.nome,
       uid: produto.uid_etiqueta,
       descricao: produto.descricao || "",
     });
-    setUiState((prev) => ({ ...prev, modalVisible: true }));
-  };
+    setUiState((p) => ({ ...p, modalVisible: true }));
+  }, []);
 
-  const fecharModal = () => {
-    setUiState((prev) => ({ ...prev, modalVisible: false }));
+  const fecharModal = useCallback(() => {
+    setUiState((p) => ({ ...p, modalVisible: false }));
     resetForm();
     pararEscutaTag();
-  };
+  }, [resetForm, pararEscutaTag]);
 
-  const validarFormulario = () => {
+  const validarFormulario = useCallback(() => {
     if (!form.nome.trim() || !form.uid.trim()) {
       Alert.alert("Atenção", "Nome e UID são obrigatórios.");
       return false;
@@ -196,31 +224,24 @@ export default function Gerenciar() {
     }
 
     return true;
-  };
+  }, [form, produtos, produtoEmEdicao]);
 
-  const handleSalvar = async () => {
+  const handleSalvar = useCallback(async () => {
     if (!validarFormulario()) return;
 
-    setUiState((prev) => ({ ...prev, salvando: true }));
+    setUiState((p) => ({ ...p, salvando: true }));
 
     try {
-      let resultado;
-      if (produtoEmEdicao) {
-        resultado = await api.atualizarProduto(
-          produtoEmEdicao.id,
-          form.nome,
-          form.uid,
-          form.descricao
-        );
-      } else {
-        resultado = await api.cadastrarProduto(
-          form.nome,
-          form.uid,
-          form.descricao
-        );
-      }
+      const resultado = produtoEmEdicao
+        ? await api.atualizarProduto(
+            produtoEmEdicao.id,
+            form.nome,
+            form.uid,
+            form.descricao
+          )
+        : await api.cadastrarProduto(form.nome, form.uid, form.descricao);
 
-      if (resultado && (resultado.success || resultado.id || resultado.data)) {
+      if (resultado?.success || resultado?.id || resultado?.data) {
         Alert.alert(
           "Sucesso",
           `Produto ${produtoEmEdicao ? "atualizado" : "cadastrado"}!`
@@ -233,48 +254,40 @@ export default function Gerenciar() {
     } catch {
       Alert.alert("Erro", "Falha de conexão.");
     } finally {
-      setUiState((prev) => ({ ...prev, salvando: false }));
+      setUiState((p) => ({ ...p, salvando: false }));
     }
-  };
-  const executarExclusao = useCallback(
-    async (id: number) => {
-      setUiState((prev) => ({ ...prev, loading: true }));
-      try {
-        const res = await api.deletarProduto(id);
-        if (res.success) {
-          setProdutos((prev) => prev.filter((p) => p.id !== id));
-          if (Platform.OS === "web") alert("Produto excluído!");
-          carregarProdutos(true);
-        } else {
-          Alert.alert("Erro", res.message || "Não foi possível excluir.");
-        }
-      } catch {
-        Alert.alert("Erro", "Falha ao conectar com o servidor.");
-      } finally {
-        setUiState((prev) => ({ ...prev, loading: false }));
-      }
-    },
-    [carregarProdutos]
-  );
+  }, [validarFormulario, form, produtoEmEdicao, fecharModal, carregarProdutos]);
 
   const handleExcluir = useCallback(
     (produto: Produto) => {
-      const confirmarExclusao = () => {
-        executarExclusao(produto.id);
+      const executarExclusao = async () => {
+        setUiState((p) => ({ ...p, loading: true }));
+        try {
+          const res = await api.deletarProduto(produto.id);
+          if (res.success) {
+            setProdutos((p) => p.filter((item) => item.id !== produto.id));
+            if (Platform.OS === "web") alert("Produto excluído!");
+            carregarProdutos(true);
+          } else {
+            Alert.alert("Erro", res.message || "Não foi possível excluir.");
+          }
+        } catch {
+          Alert.alert("Erro", "Falha ao conectar com o servidor.");
+        } finally {
+          setUiState((p) => ({ ...p, loading: false }));
+        }
       };
 
       if (Platform.OS === "web") {
-        if (window.confirm(`Remover "${produto.nome}"?`)) {
-          confirmarExclusao();
-        }
+        if (window.confirm(`Remover "${produto.nome}"?`)) executarExclusao();
       } else {
         Alert.alert("Excluir Produto", `Deseja remover "${produto.nome}"?`, [
           { text: "Cancelar", style: "cancel" },
-          { text: "Sim", style: "destructive", onPress: confirmarExclusao },
+          { text: "Sim", style: "destructive", onPress: executarExclusao },
         ]);
       }
     },
-    [executarExclusao]
+    [carregarProdutos]
   );
 
   const dadosFiltrados = useMemo(() => {
@@ -328,43 +341,16 @@ export default function Gerenciar() {
         </View>
       </View>
     ),
-    [handleExcluir]
+    [handleExcluir, abrirModalEdicao]
   );
 
   if (isAuthenticated === null || (uiState.loading && produtos.length === 0)) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
-  if (isAuthenticated === false) {
+  if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <Navbar />
-        <View style={styles.accessDeniedContainer}>
-          <View style={styles.accessDeniedCard}>
-            <FontAwesome6 name="lock" size={60} color="#999" />
-            <Text style={styles.accessDeniedTitle}>Acesso Restrito</Text>
-            <Text style={styles.accessDeniedText}>
-              Você precisa estar logado para acessar esta tela.
-            </Text>
-            <TouchableOpacity
-              style={styles.btnLogin}
-              onPress={() => router.replace("/(tabs)/login")}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.btnLoginText}>Fazer Login</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <AuthRequiredScreen onLogin={() => router.replace("/(auth)/login")} />
     );
   }
 
@@ -381,10 +367,10 @@ export default function Gerenciar() {
               placeholder="Buscar produto ou UID..."
               onChangeText={setBuscar}
               onFocus={() =>
-                setUiState((prev) => ({ ...prev, isSearchFocused: true }))
+                setUiState((p) => ({ ...p, isSearchFocused: true }))
               }
               onBlur={() =>
-                setUiState((prev) => ({ ...prev, isSearchFocused: false }))
+                setUiState((p) => ({ ...p, isSearchFocused: false }))
               }
               style={[
                 styles.buscar,
@@ -438,6 +424,7 @@ export default function Gerenciar() {
         <FontAwesome6 name="plus" size={24} color="white" />
       </TouchableOpacity>
 
+      {/* Modal Cadastro/Edição */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -456,9 +443,7 @@ export default function Gerenciar() {
                 style={styles.modalInput}
                 placeholder="Ex: Fonte 450w"
                 value={form.nome}
-                onChangeText={(text) =>
-                  setForm((prev) => ({ ...prev, nome: text }))
-                }
+                onChangeText={(text) => setForm((p) => ({ ...p, nome: text }))}
               />
             </View>
 
@@ -469,11 +454,8 @@ export default function Gerenciar() {
                   style={[styles.modalInput, { flex: 1 }]}
                   placeholder="Toque no ícone ao lado..."
                   value={form.uid}
-                  onChangeText={(text) =>
-                    setForm((prev) => ({ ...prev, uid: text }))
-                  }
+                  onChangeText={(text) => setForm((p) => ({ ...p, uid: text }))}
                   autoCapitalize="none"
-                  editable={true}
                 />
                 <TouchableOpacity
                   style={styles.btnNfcScan}
@@ -491,7 +473,7 @@ export default function Gerenciar() {
                 placeholder="Detalhes do item..."
                 value={form.descricao}
                 onChangeText={(text) =>
-                  setForm((prev) => ({ ...prev, descricao: text }))
+                  setForm((p) => ({ ...p, descricao: text }))
                 }
               />
             </View>
@@ -520,6 +502,7 @@ export default function Gerenciar() {
         </View>
       </Modal>
 
+      {/* Modal Scan NFC */}
       <Modal
         animationType="fade"
         transparent={true}

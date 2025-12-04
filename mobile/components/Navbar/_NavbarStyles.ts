@@ -41,9 +41,6 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   btnSair: {
-    backgroundColor: Colors.vermelho,
-    padding: 10,
-    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     position: "absolute",

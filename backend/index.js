@@ -12,7 +12,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "segredo_padrao";
 app.use(cors());
 app.use(express.json());
 
-// Conexão Híbrida
 const isProduction = !!process.env.DATABASE_URL;
 const pool = new Pool({
   connectionString:
@@ -21,7 +20,6 @@ const pool = new Pool({
   ...(isProduction && { ssl: { rejectUnauthorized: false } }),
 });
 
-// Buffer para tag desconhecida (Validade: 30s)
 let lastUnknownTag = { uid: null, time: 0 };
 
 // --- ROTAS AUXILIARES ---
@@ -44,12 +42,11 @@ app.get("/api/last-unknown", (req, res) => {
 });
 
 // --- MOVIMENTAÇÕES (ESP32) ---
-// CORREÇÃO APLICADA AQUI:
 app.post("/api/movements", async (req, res) => {
   let { uid, tipo } = req.body;
   if (!uid) return res.status(400).json({ message: "UID ausente" });
 
-  uid = uid.toUpperCase(); // Garante que acha no banco
+  uid = uid.toUpperCase();
 
   try {
     const prod = await pool.query(
@@ -63,7 +60,6 @@ app.post("/api/movements", async (req, res) => {
       return res.status(404).json({ message: "Não cadastrado" });
     }
 
-    // MUDANÇA: Usamos 'leitura' em vez de 'movimentacao' para evitar erro de banco
     let tipoFinal = "leitura";
     if (tipo === "saida") {
       tipoFinal = "saida";
@@ -76,7 +72,7 @@ app.post("/api/movements", async (req, res) => {
     console.log(`Sucesso: ${uid} -> ${tipoFinal}`);
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error("ERRO MOVIMENTACAO:", err); // Log para ver no Render se der erro
+    console.error("ERRO MOVIMENTACAO:", err);
     res.status(500).json({ message: "Erro interno" });
   }
 });

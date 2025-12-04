@@ -20,10 +20,10 @@ import Sobre from "./pages/Sobre";
 import Historico from "./pages/Historico";
 import Gerenciar from "./pages/Gerenciar";
 
-// Layout para páginas autenticadas
+// LPAGS AUTENTICADAS
 function AuthenticatedLayout() {
   return (
-    <div className="font-roboto min-h-screen flex flex-col">
+    <div className="font-roboto min-h-screen flex flex-col pb-16 sm:pb-0">
       <Navbar />
 
       <div className="flex flex-col lg:flex-row flex-1">
@@ -39,7 +39,7 @@ function AuthenticatedLayout() {
   );
 }
 
-// Layout para páginas públicas
+// PAGS PUBLICAS
 function PublicLayout() {
   return (
     <div className="font-roboto min-h-screen">
