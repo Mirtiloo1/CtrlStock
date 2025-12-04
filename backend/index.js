@@ -14,9 +14,7 @@ app.use(express.json());
 
 const isProduction = !!process.env.DATABASE_URL;
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://postgres:Cleison23!08!@localhost:5432/ctrlstock_db",
+  connectionString: process.env.DATABASE_URL || process.env.DATABASE_URL_LOCAL,
   ...(isProduction && { ssl: { rejectUnauthorized: false } }),
 });
 
@@ -27,13 +25,11 @@ app.get("/test-db", async (req, res) => {
   try {
     const r = await pool.query("SELECT NOW()");
     res.json({ success: true, dbTime: r.rows[0].now });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get("/api/last-unknown", (req, res) => {
-  if (lastUnknownTag.uid && Date.now() - lastUnknownTag.time < 30000) {
+  if (lastUnknownTag.uid && (Date.now() - lastUnknownTag.time < 30000)) {
     const uid = lastUnknownTag.uid;
     lastUnknownTag = { uid: null, time: 0 };
     return res.json({ uid });
@@ -43,139 +39,91 @@ app.get("/api/last-unknown", (req, res) => {
 
 // --- MOVIMENTAÇÕES (ESP32) ---
 app.post("/api/movements", async (req, res) => {
-  let { uid, tipo } = req.body;
+  const { uid, tipo } = req.body;
   if (!uid) return res.status(400).json({ message: "UID ausente" });
 
-  uid = uid.toUpperCase();
-
   try {
-    const prod = await pool.query(
-      "SELECT id FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
-      [uid]
-    );
+    // 1. Verifica se existe
+    const prod = await pool.query("SELECT id, nome FROM produtos WHERE uid_etiqueta=$1 AND ativo=true", [uid]);
 
+    // 2. SE NÃO EXISTE (CADASTRO): Retorna 202 (Sucesso para o ESP32)
     if (!prod.rows.length) {
       lastUnknownTag = { uid, time: Date.now() };
-      console.log(`Tag Nova: ${uid}`);
-      return res.status(404).json({ message: "Não cadastrado" });
+      return res.status(202).json({ message: "Tag lida. Pronta para cadastro." });
     }
 
-    let tipoFinal = "leitura";
-    if (tipo === "saida") {
-      tipoFinal = "saida";
-    }
+    const produtoId = prod.rows[0].id;
 
-    await pool.query(
-      "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
-      [prod.rows[0].id, tipoFinal]
+    // 3. TRAVA DE SAÍDA DUPLA
+    const lastMov = await pool.query(
+        "SELECT tipo FROM movimentacoes WHERE produto_id = $1 ORDER BY timestamp DESC LIMIT 1",
+        [produtoId]
     );
-    console.log(`Sucesso: ${uid} -> ${tipoFinal}`);
+
+    const ultimoStatus = lastMov.rows.length ? lastMov.rows[0].tipo : 'indefinido';
+    let tipoFinal = 'movimentacao';
+
+    if (tipo === 'saida') {
+      if (ultimoStatus === 'saida') {
+        return res.status(409).json({ message: "Produto já consta como saído." });
+      }
+      tipoFinal = 'saida';
+    } else {
+      tipoFinal = 'movimentacao';
+    }
+
+    await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)", [produtoId, tipoFinal]);
     res.status(201).json({ success: true });
-  } catch (err) {
-    console.error("ERRO MOVIMENTACAO:", err);
-    res.status(500).json({ message: "Erro interno" });
-  }
+
+  } catch (err) { res.status(500).json({ message: "Erro interno" }); }
 });
 
-// --- CRUD PRODUTOS ---
+// --- PRODUTOS ---
 app.post("/api/products", async (req, res) => {
   const { nome, uid_etiqueta, descricao } = req.body;
-  const uidFinal = uid_etiqueta.toUpperCase();
-
   const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-    const r = await client.query(
-      "INSERT INTO produtos (nome, uid_etiqueta, descricao) VALUES ($1, $2, $3) RETURNING *",
-      [nome, uidFinal, descricao]
-    );
-    await client.query(
-      "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')",
-      [r.rows[0].id]
-    );
-    await client.query("COMMIT");
+    await client.query('BEGIN');
+    const r = await client.query("INSERT INTO produtos (nome, uid_etiqueta, descricao) VALUES ($1, $2, $3) RETURNING *", [nome, uid_etiqueta, descricao]);
+    await client.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')", [r.rows[0].id]);
+    await client.query('COMMIT');
     res.status(201).json({ success: true, data: r.rows[0] });
   } catch (err) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     res.status(err.code === "23505" ? 409 : 500).json({ message: err.message });
-  } finally {
-    client.release();
-  }
+  } finally { client.release(); }
 });
 
 app.put("/api/products/:id", async (req, res) => {
   const { id } = req.params;
   const { nome, uid_etiqueta, descricao } = req.body;
-  const uidFinal = uid_etiqueta.toUpperCase();
   try {
-    const r = await pool.query(
-      "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *",
-      [nome, uidFinal, descricao, id]
-    );
+    const r = await pool.query("UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *", [nome, uid_etiqueta, descricao, id]);
     if (r.rows.length) {
-      await pool.query(
-        "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'editado')",
-        [id]
-      );
+      await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'editado')", [id]);
       res.json({ success: true, data: r.rows[0] });
-    } else {
-      res.status(404).json({ message: "Não encontrado" });
-    }
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    } else { res.status(404).json({ message: "Não encontrado" }); }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 app.delete("/api/products/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query(
-      "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'excluido')",
-      [id]
-    );
-    const r = await pool.query(
-      "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id=$1 RETURNING *",
-      [id]
-    );
+    await pool.query("INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'excluido')", [id]);
+    const r = await pool.query("UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id=$1 RETURNING *", [id]);
     if (r.rows.length) res.json({ success: true });
     else res.status(404).json({ message: "Não encontrado" });
-  } catch {
-    res.status(500).json({ success: false });
-  }
+  } catch { res.status(500).json({ success: false }); }
 });
 
 app.get("/api/products", async (req, res) => {
-  try {
-    const r = await pool.query(
-      "SELECT * FROM produtos WHERE ativo = true ORDER BY nome ASC"
-    );
-    res.json({ success: true, data: r.rows });
-  } catch {
-    res.status(500).json({ success: false });
-  }
+  const r = await pool.query("SELECT * FROM produtos WHERE ativo = true ORDER BY nome ASC");
+  res.json({ success: true, data: r.rows });
 });
 
 app.get("/api/movements", async (req, res) => {
-  try {
-    const r = await pool.query(`
-      SELECT 
-        m.id, 
-        m.timestamp, 
-        m.tipo, 
-        m.produto_id,
-        p.nome, 
-        p.uid_etiqueta 
-      FROM movimentacoes m 
-      LEFT JOIN produtos p ON m.produto_id = p.id 
-      ORDER BY m.timestamp DESC 
-      LIMIT 100
-    `);
-
-    res.json({ success: true, data: r.rows });
-  } catch (err) {
-    console.error("Erro ao buscar movimentações:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  const r = await pool.query(`SELECT m.id, m.timestamp, m.tipo, p.nome, p.uid_etiqueta FROM movimentacoes m JOIN produtos p ON m.produto_id = p.id ORDER BY m.timestamp DESC LIMIT 100`);
+  res.json({ success: true, data: r.rows });
 });
 
 // --- AUTH ---
@@ -183,29 +131,20 @@ app.post("/auth/register", async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
     const hash = await bcrypt.hash(senha, 10);
-    const r = await pool.query(
-      "INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email",
-      [nome, email, hash]
-    );
+    const r = await pool.query("INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email", [nome, email, hash]);
     res.status(201).json({ success: true, user: r.rows[0] });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 app.post("/auth/login", async (req, res) => {
   const { email, senha } = req.body;
   try {
-    const r = await pool.query("SELECT * FROM usuarios WHERE email = $1", [
-      email,
-    ]);
-    if (!r.rows.length || !(await bcrypt.compare(senha, r.rows[0].senha_hash)))
+    const r = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
+    if (!r.rows.length || !await bcrypt.compare(senha, r.rows[0].senha_hash))
       return res.status(400).json({ message: "Inválido" });
     const token = jwt.sign({ id: r.rows[0].id }, JWT_SECRET);
     res.json({ success: true, token, user: r.rows[0] });
-  } catch {
-    res.status(500).json({ message: "Erro servidor" });
-  }
+  } catch { res.status(500).json({ message: "Erro servidor" }); }
 });
 
 app.listen(port, () => console.log(`Rodando na porta ${port}`));

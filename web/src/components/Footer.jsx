@@ -94,7 +94,7 @@ export default function Footer() {
             © 2025 CtrlStock. Todos os direitos reservados.
           </p>
           <p className="text-gray-500 text-xs md:text-sm">
-            Felipe de Souza, Gabriel Pontes, Jefferson Kotoski, Murilo Pimentel
+            Jefferson Kotoski, Murilo Pimentel
           </p>
         </div>
       </div>
