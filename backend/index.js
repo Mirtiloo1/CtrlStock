@@ -23,7 +23,28 @@ const pool = new Pool({
 
 let lastUnknownTag = { uid: null, time: 0 };
 
-// --- ROTAS AUXILIARES ---
+// STADO DO DISPOSITIVO
+let deviceState = {
+  mode: "entrada", // 'entrada' ou 'saida'
+  lastUpdate: Date.now(),
+};
+
+// Rota para o ESP32 avisar que mudou o botão
+app.post("/api/device-status", (req, res) => {
+  const { mode } = req.body; // Espera: { "mode": "saida" }
+  if (mode && (mode === "entrada" || mode === "saida")) {
+    deviceState.mode = mode;
+    deviceState.lastUpdate = Date.now();
+    console.log(`>>> STATUS ATUALIZADO: Modo ${mode.toUpperCase()}`);
+    return res.json({ success: true });
+  }
+  res.status(400).json({ success: false });
+});
+
+app.get("/api/device-status", (req, res) => {
+  res.json({ success: true, state: deviceState });
+});
+
 app.get("/test-db", async (req, res) => {
   try {
     const r = await pool.query("SELECT NOW()");
@@ -42,7 +63,7 @@ app.get("/api/last-unknown", (req, res) => {
   res.json({ uid: null });
 });
 
-// --- MOVIMENTAÇÕES (ESP32) - ROTA CORRIGIDA E ÚNICA ---
+// MOVIMENTAÇÕES (ESP32)
 app.post("/api/movements", async (req, res) => {
   let { uid, tipo } = req.body;
 
@@ -104,7 +125,7 @@ app.post("/api/movements", async (req, res) => {
   }
 });
 
-// --- CRUD PRODUTOS ---
+// CRUD PRODUTOS
 app.post("/api/products", async (req, res) => {
   const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
@@ -194,9 +215,9 @@ app.get("/api/movements", async (req, res) => {
         p.uid_etiqueta,
         p.imagem
       FROM movimentacoes m
-      LEFT JOIN produtos p ON m.produto_id = p.id
+             LEFT JOIN produtos p ON m.produto_id = p.id
       ORDER BY m.timestamp DESC
-      LIMIT 100
+        LIMIT 100
     `);
 
     res.json({ success: true, data: r.rows });
