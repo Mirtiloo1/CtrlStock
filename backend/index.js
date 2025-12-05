@@ -41,39 +41,72 @@ app.get("/api/last-unknown", (req, res) => {
   res.json({ uid: null });
 });
 
-// --- MOVIMENTAÇÕES (ESP32) ---
+// --- MOVIMENTAÇÕES (ESP32) - ROTA CORRIGIDA E ÚNICA ---
 app.post("/api/movements", async (req, res) => {
-  let { uid, tipo } = req.body;
+  let { uid, tipo } = req.body; // ESP32 manda: { "uid": "...", "tipo": "entrada" ou "saida" }
+
   if (!uid) return res.status(400).json({ message: "UID ausente" });
 
   uid = uid.toUpperCase();
 
+  const client = await pool.connect();
+
   try {
-    const prod = await pool.query(
-        "SELECT id FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
+    // 1. Verifica se o produto existe e está ativo
+    const prod = await client.query(
+        "SELECT id, nome FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
         [uid]
     );
 
+    // Se não achar produto ativo com essa etiqueta
     if (!prod.rows.length) {
       lastUnknownTag = { uid, time: Date.now() };
-      console.log(`Tag Nova: ${uid}`);
+      console.log(`Tag Nova/Desconhecida: ${uid}`);
       return res.status(404).json({ message: "Não cadastrado" });
     }
 
-    let tipoFinal = "leitura";
+    const produtoId = prod.rows[0].id;
+    const nomeProduto = prod.rows[0].nome;
+
+    // --- LÓGICA DE SAÍDA ---
     if (tipo === "saida") {
-      tipoFinal = "saida";
+      // 1. Registra SAÍDA no histórico
+      await client.query(
+          "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'saida')",
+          [produtoId]
+      );
+
+      // 2. Desativa o produto e LIBERA a etiqueta (NULL)
+      await client.query(
+          "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id = $1",
+          [produtoId]
+      );
+
+      console.log(`>>> SAÍDA: ${nomeProduto} removido. Tag ${uid} liberada.`);
+      return res.status(200).json({ success: true, message: "Saída registrada." });
     }
 
-    await pool.query(
-        "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
-        [prod.rows[0].id, tipoFinal]
-    );
-    console.log(`Sucesso: ${uid} -> ${tipoFinal}`);
-    res.status(201).json({ success: true });
+    // --- LÓGICA DE ENTRADA/LEITURA ---
+    else {
+      let tipoFinal = "leitura";
+      if (tipo === "entrada") {
+        tipoFinal = "leitura"; // Se já existe e deu entrada dnv, conta como leitura
+      }
+
+      await client.query(
+          "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
+          [produtoId, tipoFinal]
+      );
+
+      console.log(`Leitura: ${nomeProduto} -> ${tipoFinal}`);
+      return res.status(201).json({ success: true });
+    }
+
   } catch (err) {
     console.error("ERRO MOVIMENTACAO:", err);
     res.status(500).json({ message: "Erro interno" });
+  } finally {
+    client.release();
   }
 });
 
@@ -158,17 +191,17 @@ app.get("/api/products", async (req, res) => {
 app.get("/api/movements", async (req, res) => {
   try {
     const r = await pool.query(`
-      SELECT 
-        m.id, 
-        m.timestamp, 
-        m.tipo, 
+      SELECT
+        m.id,
+        m.timestamp,
+        m.tipo,
         m.produto_id,
-        p.nome, 
-        p.uid_etiqueta 
-      FROM movimentacoes m 
-      LEFT JOIN produtos p ON m.produto_id = p.id 
-      ORDER BY m.timestamp DESC 
-      LIMIT 100
+        p.nome,
+        p.uid_etiqueta
+      FROM movimentacoes m
+             LEFT JOIN produtos p ON m.produto_id = p.id
+      ORDER BY m.timestamp DESC
+        LIMIT 100
     `);
 
     res.json({ success: true, data: r.rows });
@@ -179,74 +212,17 @@ app.get("/api/movements", async (req, res) => {
 });
 
 // --- AUTH ---
-app.post("/api/movements", async (req, res) => {
-  let { uid, tipo } = req.body; // O ESP32 manda: { "uid": "...", "tipo": "entrada" ou "saida" }
-
-  if (!uid) return res.status(400).json({ message: "UID ausente" });
-
-  uid = uid.toUpperCase();
-
-  const client = await pool.connect(); // Usaremos client para garantir a ordem
-
+app.post("/auth/register", async (req, res) => {
+  const { nome, email, senha } = req.body;
   try {
-    // 1. Verifica se o produto existe e está ativo
-    const prod = await client.query(
-        "SELECT id, nome FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
-        [uid]
+    const hash = await bcrypt.hash(senha, 10);
+    const r = await pool.query(
+        "INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email",
+        [nome, email, hash]
     );
-
-    // Se não achar produto ativo com essa etiqueta
-    if (!prod.rows.length) {
-      // Salva na memória para facilitar o cadastro no front
-      lastUnknownTag = { uid, time: Date.now() };
-      console.log(`Tag Nova/Desconhecida detectada: ${uid}`);
-      return res.status(404).json({ message: "Não cadastrado" });
-    }
-
-    const produtoId = prod.rows[0].id;
-    const nomeProduto = prod.rows[0].nome;
-
-    // --- LÓGICA DE SAÍDA (O QUE FALTAVA) ---
-    if (tipo === "saida") {
-
-      // 1. Registra no histórico que saiu
-      await client.query(
-          "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'saida')",
-          [produtoId]
-      );
-
-      // 2. Desativa o produto e LIBERA a etiqueta (NULL)
-      // Isso faz sumir do 'Gerenciar' e permite usar a tag em outro produto
-      await client.query(
-          "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id = $1",
-          [produtoId]
-      );
-
-      console.log(`>>> SAÍDA: ${nomeProduto} removido do estoque. Tag ${uid} liberada.`);
-      return res.status(200).json({ success: true, message: "Saída registrada e tag liberada." });
-    }
-
-    else {
-
-      let tipoFinal = "leitura";
-      if (tipo === "entrada") {
-        tipoFinal = "leitura";
-      }
-
-      await client.query(
-          "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
-          [produtoId, tipoFinal]
-      );
-
-      console.log(`Leitura: ${nomeProduto} -> ${tipoFinal}`);
-      return res.status(201).json({ success: true });
-    }
-
+    res.status(201).json({ success: true, user: r.rows[0] });
   } catch (err) {
-    console.error("ERRO MOVIMENTACAO:", err);
-    res.status(500).json({ message: "Erro interno" });
-  } finally {
-    client.release();
+    res.status(500).json({ message: err.message });
   }
 });
 
