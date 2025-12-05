@@ -61,12 +61,12 @@ export const api = {
     }
   },
 
-  async cadastrarProduto(nome, uid, descricao) {
+  async cadastrarProduto(nome, uid, descricao, imagem = "") {
     try {
       const response = await fetch(`${API_URL}/api/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, uid_etiqueta: uid, descricao }),
+        body: JSON.stringify({ nome, uid_etiqueta: uid, descricao, imagem }),
       });
       return await response.json();
     } catch (error) {
@@ -75,12 +75,12 @@ export const api = {
     }
   },
 
-  async atualizarProduto(id, nome, uid, descricao) {
+  async atualizarProduto(id, nome, uid, descricao, imagem = "") {
     try {
       const response = await fetch(`${API_URL}/api/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, uid_etiqueta: uid, descricao }),
+        body: JSON.stringify({ nome, uid_etiqueta: uid, descricao, imagem }),
       });
       return await response.json();
     } catch (error) {
@@ -128,6 +128,16 @@ export const api = {
     } catch (error) {
       console.error("Erro ao ler tag:", error);
       return { uid: null };
+    }
+  },
+
+  // ==================== STATUS DISPOSITIVO ====================
+  async getDeviceStatus() {
+    try {
+      const response = await fetch(`${API_URL}/api/device-status`);
+      return await response.json();
+    } catch {
+      return { success: false };
     }
   },
 };

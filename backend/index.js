@@ -10,7 +10,8 @@ const port = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "segredo_padrao";
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" })); // Aumentado para suportar imagens
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 const isProduction = !!process.env.DATABASE_URL;
 const pool = new Pool({
@@ -41,53 +42,79 @@ app.get("/api/last-unknown", (req, res) => {
   res.json({ uid: null });
 });
 
-// --- MOVIMENTAÇÕES (ESP32) ---
+// --- MOVIMENTAÇÕES (ESP32) - ROTA CORRIGIDA E ÚNICA ---
 app.post("/api/movements", async (req, res) => {
   let { uid, tipo } = req.body;
+
   if (!uid) return res.status(400).json({ message: "UID ausente" });
 
   uid = uid.toUpperCase();
 
+  const client = await pool.connect();
+
   try {
-    const prod = await pool.query(
-      "SELECT id FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
+    const prod = await client.query(
+      "SELECT id, nome FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
       [uid]
     );
 
     if (!prod.rows.length) {
       lastUnknownTag = { uid, time: Date.now() };
-      console.log(`Tag Nova: ${uid}`);
+      console.log(`Tag Nova/Desconhecida: ${uid}`);
       return res.status(404).json({ message: "Não cadastrado" });
     }
 
-    let tipoFinal = "leitura";
-    if (tipo === "saida") {
-      tipoFinal = "saida";
-    }
+    const produtoId = prod.rows[0].id;
+    const nomeProduto = prod.rows[0].nome;
 
-    await pool.query(
-      "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
-      [prod.rows[0].id, tipoFinal]
-    );
-    console.log(`Sucesso: ${uid} -> ${tipoFinal}`);
-    res.status(201).json({ success: true });
+    if (tipo === "saida") {
+      await client.query(
+        "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'saida')",
+        [produtoId]
+      );
+
+      await client.query(
+        "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id = $1",
+        [produtoId]
+      );
+
+      console.log(`>>> SAÍDA: ${nomeProduto} removido. Tag ${uid} liberada.`);
+      return res
+        .status(200)
+        .json({ success: true, message: "Saída registrada." });
+    } else {
+      let tipoFinal = "leitura";
+      if (tipo === "entrada") {
+        tipoFinal = "leitura";
+      }
+
+      await client.query(
+        "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, $2)",
+        [produtoId, tipoFinal]
+      );
+
+      console.log(`Leitura: ${nomeProduto} -> ${tipoFinal}`);
+      return res.status(201).json({ success: true });
+    }
   } catch (err) {
     console.error("ERRO MOVIMENTACAO:", err);
     res.status(500).json({ message: "Erro interno" });
+  } finally {
+    client.release();
   }
 });
 
 // --- CRUD PRODUTOS ---
 app.post("/api/products", async (req, res) => {
-  const { nome, uid_etiqueta, descricao } = req.body;
+  const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const r = await client.query(
-      "INSERT INTO produtos (nome, uid_etiqueta, descricao) VALUES ($1, $2, $3) RETURNING *",
-      [nome, uidFinal, descricao]
+      "INSERT INTO produtos (nome, uid_etiqueta, descricao, imagem) VALUES ($1, $2, $3, $4) RETURNING *",
+      [nome, uidFinal, descricao, imagem || null]
     );
     await client.query(
       "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')",
@@ -105,12 +132,12 @@ app.post("/api/products", async (req, res) => {
 
 app.put("/api/products/:id", async (req, res) => {
   const { id } = req.params;
-  const { nome, uid_etiqueta, descricao } = req.body;
+  const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
   try {
     const r = await pool.query(
-      "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *",
-      [nome, uidFinal, descricao, id]
+      "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3, imagem=$4 WHERE id=$5 RETURNING *",
+      [nome, uidFinal, descricao, imagem || null, id]
     );
     if (r.rows.length) {
       await pool.query(
@@ -158,16 +185,17 @@ app.get("/api/products", async (req, res) => {
 app.get("/api/movements", async (req, res) => {
   try {
     const r = await pool.query(`
-      SELECT 
-        m.id, 
-        m.timestamp, 
-        m.tipo, 
+      SELECT
+        m.id,
+        m.timestamp,
+        m.tipo,
         m.produto_id,
-        p.nome, 
-        p.uid_etiqueta 
-      FROM movimentacoes m 
-      LEFT JOIN produtos p ON m.produto_id = p.id 
-      ORDER BY m.timestamp DESC 
+        p.nome,
+        p.uid_etiqueta,
+        p.imagem
+      FROM movimentacoes m
+      LEFT JOIN produtos p ON m.produto_id = p.id
+      ORDER BY m.timestamp DESC
       LIMIT 100
     `);
 

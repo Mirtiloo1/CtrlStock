@@ -7,6 +7,10 @@ import {
   faWifi,
   faSort,
   faLock,
+  faCamera,
+  faImage,
+  faTimes,
+  faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect, useRef } from "react";
 import { api } from "../services/api";
@@ -27,13 +31,20 @@ export default function Gerenciar() {
   const [produtoEditando, setProdutoEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
+  const [modalDetalhes, setModalDetalhes] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
+
   const intervalRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     nome: "",
     uid: "",
     descricao: "",
+    imagem: "",
   });
+
+  const [previewImagem, setPreviewImagem] = useState("");
 
   const carregarProdutos = async (silencioso = false) => {
     if (!isAuthenticated) return;
@@ -75,8 +86,8 @@ export default function Gerenciar() {
           if (navigator.vibrate) navigator.vibrate(200);
           pararLeituraTag();
         }
-      } catch {
-        // Erro silencioso
+      } catch (error) {
+        console.error("Erro ao ler tag:", error);
       }
     }, 1000);
   };
@@ -110,7 +121,8 @@ export default function Gerenciar() {
   const produtosFiltrados = getProdutosFiltrados();
 
   const abrirModalNovo = () => {
-    setForm({ nome: "", uid: "", descricao: "" });
+    setForm({ nome: "", uid: "", descricao: "", imagem: "" });
+    setPreviewImagem("");
     setProdutoEditando(null);
     setModalAberto(true);
   };
@@ -120,22 +132,77 @@ export default function Gerenciar() {
       nome: produto.nome,
       uid: produto.uid_etiqueta,
       descricao: produto.descricao || "",
+      imagem: produto.imagem || "",
     });
+    setPreviewImagem(produto.imagem || "");
     setProdutoEditando(produto);
     setModalAberto(true);
   };
 
   const fecharModal = () => {
     setModalAberto(false);
-    setForm({ nome: "", uid: "", descricao: "" });
+    setForm({ nome: "", uid: "", descricao: "", imagem: "" });
+    setPreviewImagem("");
     setProdutoEditando(null);
     pararLeituraTag();
   };
 
+  const abrirModalDetalhes = (produto) => {
+    setProdutoSelecionado(produto);
+    setModalDetalhes(true);
+  };
+
+  const fecharModalDetalhes = () => {
+    setModalDetalhes(false);
+    setProdutoSelecionado(null);
+  };
+
+  const handleImagemChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecione apenas arquivos de imagem.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("A imagem deve ter no máximo 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      setPreviewImagem(base64String);
+      setForm({ ...form, imagem: base64String });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const abrirSeletorImagem = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removerImagem = () => {
+    setPreviewImagem("");
+    setForm({ ...form, imagem: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSalvar = async (e) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.uid.trim()) {
-      alert("Nome e UID são obrigatórios.");
+    if (
+      !form.nome.trim() ||
+      !form.uid.trim() ||
+      !form.descricao.trim() ||
+      !form.imagem
+    ) {
+      alert(
+        "Todos os campos (Imagem, Nome, UID e Descrição) são obrigatórios."
+      );
       return;
     }
     setSalvando(true);
@@ -146,13 +213,15 @@ export default function Gerenciar() {
           produtoEditando.id,
           form.nome,
           form.uid,
-          form.descricao
+          form.descricao,
+          form.imagem
         );
       } else {
         resultado = await api.cadastrarProduto(
           form.nome,
           form.uid,
-          form.descricao
+          form.descricao,
+          form.imagem
         );
       }
 
@@ -313,13 +382,33 @@ export default function Gerenciar() {
                   }`}
                 >
                   <td className="py-4 px-6 text-slate-800 font-medium">
-                    {item.nome}
+                    <div className="flex items-center gap-3">
+                      {item.imagem ? (
+                        <img
+                          src={item.imagem}
+                          alt={item.nome}
+                          className="w-10 h-10 rounded-full object-cover border border-slate-300"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
+                          <FontAwesomeIcon icon={faImage} />
+                        </div>
+                      )}
+                      {item.nome}
+                    </div>
                   </td>
                   <td className="py-4 px-6 text-slate-600 font-mono text-sm">
                     {item.uid_etiqueta || "N/A"}
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => abrirModalDetalhes(item)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                        title="Ver Detalhes"
+                      >
+                        <FontAwesomeIcon icon={faEye} className="text-sm" />
+                      </button>
                       <button
                         onClick={() => handleExcluir(item)}
                         className="bg-btnDelete hover:bg-red-700 text-white w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-sm cursor-pointer"
@@ -359,11 +448,24 @@ export default function Gerenciar() {
               key={item.id}
               className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm"
             >
-              <div className="mb-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">
-                  Produto
-                </p>
-                <p className="text-slate-800 font-medium">{item.nome}</p>
+              <div className="mb-3 flex items-center gap-3">
+                {item.imagem ? (
+                  <img
+                    src={item.imagem}
+                    alt={item.nome}
+                    className="w-12 h-12 rounded-md object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-md bg-slate-100 flex items-center justify-center text-slate-300">
+                    <FontAwesomeIcon icon={faImage} size="lg" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">
+                    Produto
+                  </p>
+                  <p className="text-slate-800 font-medium">{item.nome}</p>
+                </div>
               </div>
 
               <div className="mb-4">
@@ -376,6 +478,13 @@ export default function Gerenciar() {
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => abrirModalDetalhes(item)}
+                  className="flex-1 bg-blue-500 hover:bg-blue-700 text-white h-10 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                >
+                  <FontAwesomeIcon icon={faEye} className="text-sm" />
+                  <span className="text-sm font-medium">Ver</span>
+                </button>
                 <button
                   onClick={() => handleExcluir(item)}
                   className="flex-1 bg-btnDelete hover:bg-red-700 text-white h-10 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
@@ -397,13 +506,80 @@ export default function Gerenciar() {
       </div>
 
       {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-40 overflow-y-auto">
+          <div
+            className="bg-white rounded-lg w-full p-4 my-6
+                max-h-[85vh] overflow-y-auto
+                max-w-sm sm:max-w-md"
+          >
             <h2 className="text-xl font-bold text-primary mb-4">
               {produtoEditando ? "Editar Produto" : "Novo Produto"}
             </h2>
 
             <form onSubmit={handleSalvar} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Foto do Produto *
+                </label>
+                <div className="flex flex-col items-center gap-3">
+                  {previewImagem ? (
+                    <div className="relative w-full aspect-square max-w-[200px] rounded-lg overflow-hidden border-2 border-gray-300">
+                      <img
+                        src={previewImagem}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removerImagem}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-lg"
+                        title="Remover imagem"
+                      >
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={abrirSeletorImagem}
+                      className="w-full aspect-square max-w-[200px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-gray-50 transition-all"
+                    >
+                      <FontAwesomeIcon
+                        icon={faCamera}
+                        className="text-4xl text-gray-400"
+                      />
+                      <p className="text-sm text-gray-500 text-center px-4">
+                        Clique para adicionar foto (Obrigatório)
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImagemChange}
+                    className="hidden"
+                    disabled={salvando}
+                  />
+
+                  {!previewImagem && (
+                    <button
+                      type="button"
+                      onClick={abrirSeletorImagem}
+                      disabled={salvando}
+                      className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                    >
+                      <FontAwesomeIcon icon={faImage} />
+                      <span>Escolher Arquivo</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Formatos aceitos: JPG, PNG, GIF (máx. 5MB)
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Produto *
@@ -446,7 +622,7 @@ export default function Gerenciar() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição
+                  Descrição *
                 </label>
                 <textarea
                   value={form.descricao}
@@ -455,6 +631,7 @@ export default function Gerenciar() {
                   }
                   className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-primary focus:outline-none"
                   rows="3"
+                  required
                   disabled={salvando}
                 />
               </div>
@@ -477,6 +654,97 @@ export default function Gerenciar() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {modalDetalhes && produtoSelecionado && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div
+            className="bg-white rounded-lg w-full p-4 my-6 
+                max-h-[85vh] overflow-y-auto 
+                max-w-sm sm:max-w-md"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-primary">
+                Detalhes do Produto
+              </h2>
+              <button
+                onClick={fecharModalDetalhes}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <FontAwesomeIcon icon={faTimes} size="lg" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <div className="relative w-full max-w-[300px] aspect-square rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg">
+                  {produtoSelecionado.imagem ? (
+                    <img
+                      src={produtoSelecionado.imagem}
+                      alt={produtoSelecionado.nome}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center">
+                      <FontAwesomeIcon
+                        icon={faCamera}
+                        className="text-zinc-400 text-6xl"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2">
+                    Nome do Produto
+                  </p>
+                  <p className="text-lg font-bold text-gray-800">
+                    {produtoSelecionado.nome}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2">
+                    ID da Etiqueta (UID)
+                  </p>
+                  <p className="text-lg font-mono font-semibold text-gray-800">
+                    {produtoSelecionado.uid_etiqueta || "Não cadastrado"}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2">
+                    Descrição
+                  </p>
+                  <p className="text-base text-gray-700 whitespace-pre-wrap">
+                    {produtoSelecionado.descricao || "Sem descrição"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    fecharModalDetalhes();
+                    abrirModalEditar(produtoSelecionado);
+                  }}
+                  className="flex-1 bg-btnEdit hover:bg-yellow-600 text-white py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faPenToSquare} />
+                  <span>Editar Produto</span>
+                </button>
+                <button
+                  onClick={fecharModalDetalhes}
+                  className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
