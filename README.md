@@ -51,6 +51,7 @@ plataforma web/mobile para gerenciamento.
     /backend   → API e regras de negócio
     /mobile    → Aplicativo Android/iOS
     /web       → Dashboard Web
+    /CtrlStockNFC    → Dashboard Web
 
 ### Pré-requisitos
 
