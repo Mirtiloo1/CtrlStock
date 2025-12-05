@@ -125,7 +125,7 @@ app.post("/api/movements", async (req, res) => {
   }
 });
 
-// --- CRUD PRODUTOS ---
+// CRUD PRODUTOS
 app.post("/api/products", async (req, res) => {
   const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
