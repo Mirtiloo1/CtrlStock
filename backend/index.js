@@ -10,7 +10,8 @@ const port = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "segredo_padrao";
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" })); // Aumentado para suportar imagens
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 const isProduction = !!process.env.DATABASE_URL;
 const pool = new Pool({
@@ -43,7 +44,7 @@ app.get("/api/last-unknown", (req, res) => {
 
 // --- MOVIMENTAÇÕES (ESP32) - ROTA CORRIGIDA E ÚNICA ---
 app.post("/api/movements", async (req, res) => {
-  let { uid, tipo } = req.body; // ESP32 manda: { "uid": "...", "tipo": "entrada" ou "saida" }
+  let { uid, tipo } = req.body;
 
   if (!uid) return res.status(400).json({ message: "UID ausente" });
 
@@ -52,13 +53,11 @@ app.post("/api/movements", async (req, res) => {
   const client = await pool.connect();
 
   try {
-    // 1. Verifica se o produto existe e está ativo
     const prod = await client.query(
         "SELECT id, nome FROM produtos WHERE uid_etiqueta=$1 AND ativo=true",
         [uid]
     );
 
-    // Se não achar produto ativo com essa etiqueta
     if (!prod.rows.length) {
       lastUnknownTag = { uid, time: Date.now() };
       console.log(`Tag Nova/Desconhecida: ${uid}`);
@@ -68,29 +67,25 @@ app.post("/api/movements", async (req, res) => {
     const produtoId = prod.rows[0].id;
     const nomeProduto = prod.rows[0].nome;
 
-    // --- LÓGICA DE SAÍDA ---
     if (tipo === "saida") {
-      // 1. Registra SAÍDA no histórico
       await client.query(
           "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'saida')",
           [produtoId]
       );
 
-      // 2. Desativa o produto e LIBERA a etiqueta (NULL)
       await client.query(
           "UPDATE produtos SET ativo = false, uid_etiqueta = NULL WHERE id = $1",
           [produtoId]
       );
 
       console.log(`>>> SAÍDA: ${nomeProduto} removido. Tag ${uid} liberada.`);
-      return res.status(200).json({ success: true, message: "Saída registrada." });
-    }
-
-    // --- LÓGICA DE ENTRADA/LEITURA ---
-    else {
+      return res
+          .status(200)
+          .json({ success: true, message: "Saída registrada." });
+    } else {
       let tipoFinal = "leitura";
       if (tipo === "entrada") {
-        tipoFinal = "leitura"; // Se já existe e deu entrada dnv, conta como leitura
+        tipoFinal = "leitura";
       }
 
       await client.query(
@@ -101,7 +96,6 @@ app.post("/api/movements", async (req, res) => {
       console.log(`Leitura: ${nomeProduto} -> ${tipoFinal}`);
       return res.status(201).json({ success: true });
     }
-
   } catch (err) {
     console.error("ERRO MOVIMENTACAO:", err);
     res.status(500).json({ message: "Erro interno" });
@@ -112,15 +106,15 @@ app.post("/api/movements", async (req, res) => {
 
 // --- CRUD PRODUTOS ---
 app.post("/api/products", async (req, res) => {
-  const { nome, uid_etiqueta, descricao } = req.body;
+  const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const r = await client.query(
-        "INSERT INTO produtos (nome, uid_etiqueta, descricao) VALUES ($1, $2, $3) RETURNING *",
-        [nome, uidFinal, descricao]
+        "INSERT INTO produtos (nome, uid_etiqueta, descricao, imagem) VALUES ($1, $2, $3, $4) RETURNING *",
+        [nome, uidFinal, descricao, imagem || null]
     );
     await client.query(
         "INSERT INTO movimentacoes (produto_id, tipo) VALUES ($1, 'entrada')",
@@ -138,12 +132,12 @@ app.post("/api/products", async (req, res) => {
 
 app.put("/api/products/:id", async (req, res) => {
   const { id } = req.params;
-  const { nome, uid_etiqueta, descricao } = req.body;
+  const { nome, uid_etiqueta, descricao, imagem } = req.body;
   const uidFinal = uid_etiqueta.toUpperCase();
   try {
     const r = await pool.query(
-        "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3 WHERE id=$4 RETURNING *",
-        [nome, uidFinal, descricao, id]
+        "UPDATE produtos SET nome=$1, uid_etiqueta=$2, descricao=$3, imagem=$4 WHERE id=$5 RETURNING *",
+        [nome, uidFinal, descricao, imagem || null, id]
     );
     if (r.rows.length) {
       await pool.query(
@@ -197,7 +191,8 @@ app.get("/api/movements", async (req, res) => {
         m.tipo,
         m.produto_id,
         p.nome,
-        p.uid_etiqueta
+        p.uid_etiqueta,
+        p.imagem
       FROM movimentacoes m
              LEFT JOIN produtos p ON m.produto_id = p.id
       ORDER BY m.timestamp DESC
