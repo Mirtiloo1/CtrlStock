@@ -1,5 +1,5 @@
 import { StyleSheet, Platform } from "react-native";
-import { Colors } from "../constants/Colors";
+import { Colors } from "@/constants/Colors";
 
 export const styles = StyleSheet.create({
   scrollView: {
@@ -19,11 +19,12 @@ export const styles = StyleSheet.create({
     gap: 25,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: "#cbd5e1",
   },
   lastSetItem: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
   },
   title: {
@@ -44,13 +45,13 @@ export const styles = StyleSheet.create({
   imagem: {
     width: "100%",
     aspectRatio: 1 / 1,
-    backgroundColor: '#e5e5e8',
+    backgroundColor: "#e5e5e8",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    outlineStyle: "dashed",
-    outlineColor: "#ccc",
-    outlineWidth: 3,
+    borderWidth: 3,
+    borderColor: "#ccc",
+    borderStyle: "dashed",
   },
   hr: {
     borderBottomColor: "#ccc",
@@ -75,7 +76,7 @@ export const styles = StyleSheet.create({
     overflow: "hidden",
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: "#cbd5e1",
   },
   cards: {
     flexDirection: "row",
@@ -114,22 +115,26 @@ export const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-   sectionTitle: {
+  sectionTitle: {
     fontFamily: "Roboto-Bold",
     fontSize: 18,
     color: "#1e293b",
     letterSpacing: -0.5,
   },
 
-   // SEÇÃO: LOG DE ATIVIDADES
   logCard: {
     backgroundColor: "white",
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: "#e2e8f0",
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -143,16 +148,16 @@ export const styles = StyleSheet.create({
     gap: 0,
   },
   logItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: "#f1f5f9",
   },
   logLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
@@ -160,8 +165,8 @@ export const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
   },
   logDetails: {
@@ -187,7 +192,7 @@ export const styles = StyleSheet.create({
   logBadgeText: {
     fontFamily: "Roboto-Bold",
     fontSize: 10,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   emptyText: {
     textAlign: "center",

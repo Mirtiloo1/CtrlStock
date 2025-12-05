@@ -63,7 +63,7 @@ const LOG_STYLES = {
     badgeText: "#1d4ed8",
     badgeBorder: "#bfdbfe",
     iconName: "exchange",
-    label: "MOVIMENTAÇÃO",
+    label: "LEITURA",
   },
   editado: {
     bg: "#fffbeb",
@@ -196,8 +196,14 @@ export default function Index() {
     return {
       nome: data.ultimoItem.nome || "Produto Desconhecido",
       timestamp: formatarData(data.ultimoItem.timestamp),
+      imagem: data.ultimoItem.imagem,
+      tipo: data.ultimoItem.tipo,
     };
   }, [data.ultimoItem]);
+
+  const statusStyle = ultimoItemFormatado
+    ? getLogStyle(ultimoItemFormatado.tipo)
+    : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -216,24 +222,55 @@ export default function Index() {
       >
         <View style={indexStyles.lastItem}>
           <View style={indexStyles.lastSetItem}>
-            <FontAwesome6 name="qrcode" size={24} color={Colors.primary} />
-            <Text style={indexStyles.title}>Ultimo Ítem Escaneado</Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <FontAwesome6 name="qrcode" size={24} color={Colors.primary} />
+              <Text style={indexStyles.title}>Última atualização</Text>
+            </View>
+
+            {statusStyle && (
+              <View
+                style={[
+                  indexStyles.logBadge,
+                  {
+                    backgroundColor: statusStyle.badgeBg,
+                    borderColor: statusStyle.badgeBorder,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    indexStyles.logBadgeText,
+                    { color: statusStyle.badgeText },
+                  ]}
+                >
+                  {statusStyle.label}
+                </Text>
+              </View>
+            )}
           </View>
+
           <View style={indexStyles.hr}></View>
 
           <View style={indexStyles.imagePlaceholder}>
-            <FontAwesome
-              name="camera"
-              size={30}
-              color="gray"
-              style={indexStyles.icon}
-            />
-            <Image
-              style={indexStyles.imagem}
-              source={{
-                uri: "https://placehold.co/400x200/cccccc/333333?text=Imagem",
-              }}
-            />
+            {ultimoItemFormatado?.imagem ? (
+              <Image
+                style={[indexStyles.imagem, { borderWidth: 0 }]}
+                source={{ uri: ultimoItemFormatado.imagem }}
+                resizeMode="cover"
+              />
+            ) : (
+              <>
+                <FontAwesome
+                  name="camera"
+                  size={30}
+                  color="gray"
+                  style={indexStyles.icon}
+                />
+                <View style={indexStyles.imagem} />
+              </>
+            )}
           </View>
 
           <View style={indexStyles.itemInfo}>
@@ -357,6 +394,7 @@ export default function Index() {
                       </View>
 
                       <View style={indexStyles.logDetails}>
+                        <Text style={indexStyles.logProduct}>{log.item}</Text>
                         <Text style={indexStyles.logTime}>{log.timestamp}</Text>
                       </View>
                     </View>

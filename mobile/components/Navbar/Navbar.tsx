@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "./_NavbarStyles";
+import { useEffect, useState } from "react";
+import { api } from "../../services/api";
 
 export default function Navbar() {
   const insets = useSafeAreaInsets();
@@ -20,6 +22,26 @@ export default function Navbar() {
 
   const { width } = useWindowDimensions();
   const isSmallDevice = width < 380;
+
+  const [modo, setModo] = useState("entrada");
+
+  useEffect(() => {
+    const verificarStatus = async () => {
+      try {
+        const dados = await api.getDeviceStatus();
+        if (dados && dados.success && dados.state) {
+          setModo(dados.state.mode);
+        }
+      } catch {
+        // Falha silenciosa
+      }
+    };
+    verificarStatus();
+    const intervalo = setInterval(verificarStatus, 2000);
+    return () => clearInterval(intervalo);
+  }, []);
+
+  const isEntrada = modo === "entrada";
 
   const handleLogout = async () => {
     if (Platform.OS === "web") {
@@ -63,14 +85,36 @@ export default function Navbar() {
             ]}
           >
             <Text
-              style={[styles.statusText, isSmallDevice && { fontSize: 12 }]}
+              style={[
+                styles.statusText,
+                isSmallDevice && { fontSize: 12 },
+                { flexDirection: "row" },
+              ]}
             >
-              {isAuthenticated ? "Conectado" : "Desconectado"}
+              <Text style={{ color: "black", fontWeight: "bold" }}>
+                Status:{" "}
+              </Text>
+              <Text
+                style={{
+                  color: isEntrada ? "#2E7D32" : "#C62828",
+                  fontWeight: "bold",
+                }}
+              >
+                {isEntrada ? "Entrada" : "Saída"}
+              </Text>
             </Text>
+
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: isAuthenticated ? "#4CAF50" : "#ccc" },
+                {
+                  backgroundColor: isEntrada ? "#4CAF50" : "#F44336",
+                  shadowColor: isEntrada ? "#4CAF50" : "#F44336",
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.8,
+                  shadowRadius: 4,
+                  elevation: 5,
+                },
                 isSmallDevice && { width: 7, height: 7 },
               ]}
             />
@@ -88,7 +132,7 @@ export default function Navbar() {
           >
             <FontAwesome6
               name="arrow-right-from-bracket"
-              size={isSmallDevice ?20 : 24}
+              size={isSmallDevice ? 20 : 24}
               color="white"
             />
           </TouchableOpacity>

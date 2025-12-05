@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
     right: 16,
     top: "50%",
     transform: [{ translateY: -10 }],
-    color: 'gray',
+    color: "gray",
   },
   iconLimpar: {
     position: "absolute",
@@ -68,10 +68,31 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: "#cbd5e1",
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  itemImageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  itemImage: {
+    width: "100%",
+    height: "100%",
   },
   containerTexts: {
-    gap: 4,
+    flex: 1,
   },
   label: {
     textTransform: "uppercase",
@@ -109,6 +130,10 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
+  },
+  btnVer: {
+    backgroundColor: "#3b82f6",
+    marginRight: 5,
   },
   btnTexto: {
     color: "white",
@@ -154,6 +179,12 @@ export const styles = StyleSheet.create({
     gap: 16,
     elevation: 5,
   },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   modalTitle: {
     fontSize: 20,
     fontFamily: "Roboto-Bold",
@@ -161,8 +192,43 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
+  modalTitleNoMargin: {
+    marginBottom: 0,
+  },
+  imagePickerContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  imagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 14,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderStyle: "dashed",
+    overflow: "hidden",
+  },
+  imageFull: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholderText: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 5,
+  },
+  imageChangeText: {
+    color: Colors.primary,
+    fontSize: 14,
+    marginTop: 8,
+    fontWeight: "500",
+  },
   inputGroup: {
     gap: 6,
+    marginBottom: 12,
   },
   uidContainer: {
     flexDirection: "row",
@@ -179,6 +245,10 @@ export const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     fontFamily: "Roboto-Regular",
+  },
+  inputMultiline: {
+    height: 80,
+    textAlignVertical: "top",
   },
   btnNfcScan: {
     backgroundColor: "#333",
@@ -215,6 +285,57 @@ export const styles = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     color: "white",
   },
+  detailImageContainer: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    marginBottom: 20,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  detailInfoBox: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  detailValueTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  detailValueMono: {
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    color: "#555",
+  },
+  detailValueText: {
+    fontSize: 16,
+    color: "#444",
+  },
+  btnEditLarge: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  rowCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  btnTextLarge: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+
+  // Scan Modal
   scanModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.85)",
@@ -255,52 +376,5 @@ export const styles = StyleSheet.create({
   txtScanCancel: {
     color: "white",
     fontWeight: "bold",
-  },
-  accessDeniedContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 22,
-  },
-  accessDeniedCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 40,
-    alignItems: "center",
-    gap: 20,
-    width: "100%",
-    maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  accessDeniedTitle: {
-    fontSize: 24,
-    fontFamily: "Roboto-Bold",
-    color: Colors.primary,
-    textAlign: "center",
-  },
-  accessDeniedText: {
-    fontSize: 16,
-    fontFamily: "Roboto-Regular",
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  btnLogin: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  btnLoginText: {
-    color: "white",
-    fontSize: 16,
-    fontFamily: "Roboto-Bold",
   },
 });
